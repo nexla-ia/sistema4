@@ -461,7 +461,7 @@ const ScheduleManager = ({ salon }: ScheduleManagerProps) => {
                         
                         showConfirm(
                           '🗑️ Confirmar Limpeza de Horários',
-                          'Esta ação irá remover TODOS os horários disponíveis e bloqueados do sistema. Agendamentos confirmados serão preservados.\n\nEsta ação não pode ser desfeita. Tem certeza que deseja continuar?',
+                          'Esta ação irá remover TODOS os horários disponíveis e bloqueados do sistema. Agendamentos confirmados serão preservados.\n\n⚠️ Esta ação não pode ser desfeita. Tem certeza que deseja continuar?',
                           handleDeleteAllSlots,
                           'Sim, Deletar Todos',
                           'Cancelar'
