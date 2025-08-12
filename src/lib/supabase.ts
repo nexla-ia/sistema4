@@ -677,20 +677,39 @@ export const updateSalonOpeningHours = async (salonId: string, openingHours: any
 export const getReviews = async () => {
   console.log('⭐ Buscando avaliações aprovadas...');
   
+  // First, get the first active salon since we don't have a specific salon context
+  const { data: salon, error: salonError } = await supabase
+    .from('salons')
+    .select('id')
+    .eq('active', true)
+    .limit(1)
+    .maybeSingle();
+  
+  if (salonError) {
+    console.error('Erro ao buscar salão:', salonError);
+    return { data: [], error: salonError };
+  }
+  
+  if (!salon) {
+    console.log('Nenhum salão ativo encontrado');
+    return { data: [], error: null };
+  }
+  
   const { data, error } = await supabase
     .from('reviews')
     .select('*')
-    .eq('salon_id', SALON_ID)
+    .eq('salon_id', salon.id)
     .eq('approved', true)
     .order('created_at', { ascending: false });
   
   if (error) {
     console.error('Erro ao buscar avaliações:', error);
+    return { data: [], error };
   } else {
     console.log(`✅ ${data?.length || 0} avaliações encontradas`);
   }
   
-  return { data, error };
+  return { data: data || [], error };
 };
 
 export const getAllReviews = async () => {
@@ -713,17 +732,33 @@ export const getAllReviews = async () => {
 
 export const createReview = async (reviewData: {
   customer_name: string;
-  customer_identifier: string;
   rating: number;
   comment: string;
 }) => {
   console.log('⭐ Criando avaliação:', reviewData);
   
+  // Get the first active salon
+  const { data: salon, error: salonError } = await supabase
+    .from('salons')
+    .select('id')
+    .eq('active', true)
+    .limit(1)
+    .maybeSingle();
+  
+  if (salonError || !salon) {
+    console.error('Erro ao buscar salão:', salonError);
+    return { data: null, error: salonError || new Error('Salão não encontrado') };
+  }
+  
+  // Use phone number as identifier if available, otherwise use name
+  const customerIdentifier = reviewData.customer_name.toLowerCase().replace(/\s+/g, '');
+  
   const { data, error } = await supabase
     .from('reviews')
     .insert([{
       ...reviewData,
-      salon_id: SALON_ID,
+      customer_identifier: customerIdentifier,
+      salon_id: salon.id,
       approved: true // Auto-aprovar por enquanto
     }])
     .select()
