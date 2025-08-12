@@ -454,6 +454,11 @@ const ScheduleManager = ({ salon }: ScheduleManagerProps) => {
                     </div>
                     <button
                       onClick={() => {
+                        if (!salon) {
+                          showError('Erro', 'Salão não encontrado');
+                          return;
+                        }
+                        
                         showConfirm(
                           '🗑️ Confirmar Limpeza de Horários',
                           'Esta ação irá remover TODOS os horários disponíveis e bloqueados do sistema. Agendamentos confirmados serão preservados.\n\nEsta ação não pode ser desfeita. Tem certeza que deseja continuar?',
