@@ -419,6 +419,27 @@ const ScheduleManager = ({ salon }: ScheduleManagerProps) => {
               day: 'numeric' 
             })}
           </p>
+          
+          {/* Informativo sobre bloqueio de horários */}
+          <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-start space-x-3">
+              <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-white text-sm">💡</span>
+              </div>
+              <div>
+                <h4 className="font-semibold text-blue-900 mb-2">Como gerenciar seus horários</h4>
+                <div className="text-sm text-blue-800 space-y-1">
+                  <p>• <strong>Bloquear horários:</strong> Use quando não estiver disponível (compromissos, folga, almoço estendido, etc.)</p>
+                  <p>• <strong>Liberar horários:</strong> Torne disponível novamente para agendamentos</p>
+                  <p>• <strong>Horários agendados:</strong> Não podem ser alterados - cancele o agendamento primeiro se necessário</p>
+                </div>
+                <div className="mt-3 text-xs text-blue-600 bg-blue-100 px-3 py-2 rounded">
+                  <strong>Dica:</strong> Bloqueie horários com antecedência quando souber que não estará disponível
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <div className="flex items-center space-x-6 text-xs">
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 bg-green-100 border border-green-200 rounded"></div>
