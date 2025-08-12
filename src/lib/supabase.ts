@@ -613,6 +613,31 @@ export const generateSlotsWithSavedConfig = async (startDate: string, endDate: s
   return { error: null };
 };
 
+export const deleteAllSlots = async (salonId: string) => {
+  console.log('🗑️ Deletando todos os slots do salão:', salonId);
+  
+  try {
+    // Primeiro, deletar apenas slots que não estão agendados (available ou blocked)
+    const { error } = await supabase
+      .from('slots')
+      .delete()
+      .eq('salon_id', salonId)
+      .in('status', ['available', 'blocked']);
+    
+    if (error) {
+      console.error('❌ Erro ao deletar slots:', error);
+      return { error };
+    }
+    
+    console.log('✅ Todos os slots disponíveis e bloqueados foram deletados');
+    return { error: null };
+    
+  } catch (error) {
+    console.error('❌ Erro inesperado ao deletar slots:', error);
+    return { error };
+  }
+};
+
 // Authentication
 export const getCurrentUser = async () => {
   const { data: { user }, error } = await supabase.auth.getUser();

@@ -8,6 +8,7 @@ import {
   getDefaultSchedule,
   saveDefaultSchedule,
   generateSlotsWithSavedConfig,
+  deleteAllSlots,
   type Salon 
 } from '../lib/supabase';
 
@@ -43,6 +44,7 @@ const ScheduleManager = ({ salon }: ScheduleManagerProps) => {
   const [loadingSlot, setLoadingSlot] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [defaultSchedule, setDefaultSchedule] = useState<DefaultSchedule>({
     open_time: '08:00',
     close_time: '18:00',
@@ -162,6 +164,42 @@ const ScheduleManager = ({ salon }: ScheduleManagerProps) => {
       showError('Erro', error.message || 'Erro ao gerar horários');
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleDeleteAllSlots = async () => {
+    if (!salon) {
+      showError('Erro', 'Salão não encontrado');
+      return;
+    }
+    
+    // Confirmar ação
+    if (!confirm('⚠️ ATENÇÃO: Esta ação irá deletar TODOS os horários disponíveis e bloqueados (horários agendados serão preservados). Tem certeza que deseja continuar?')) {
+      return;
+    }
+    
+    setDeleting(true);
+    try {
+      console.log('=== DELETANDO TODOS OS SLOTS ===');
+      
+      const { error } = await deleteAllSlots(salon.id);
+      
+      if (error) {
+        console.error('Erro ao deletar slots:', error);
+        showError('Erro', 'Erro ao deletar horários. Tente novamente.');
+        return;
+      }
+      
+      await loadSlots(); // Recarregar a lista
+      showSuccess(
+        'Horários Deletados!', 
+        'Todos os horários disponíveis e bloqueados foram removidos. Horários com agendamentos foram preservados.'
+      );
+    } catch (error: any) {
+      console.error('Error deleting slots:', error);
+      showError('Erro', error.message || 'Erro ao deletar horários');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -375,6 +413,41 @@ const ScheduleManager = ({ salon }: ScheduleManagerProps) => {
                   </>
                 )}
               </button>
+            </div>
+          </div>
+          
+          {/* Botão para deletar todos os slots */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h5 className="font-medium text-gray-900">Limpar Horários</h5>
+                <p className="text-sm text-gray-600">Remove todos os horários disponíveis e bloqueados</p>
+              </div>
+              <button
+                onClick={handleDeleteAllSlots}
+                disabled={deleting}
+                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center space-x-2"
+              >
+                {deleting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Deletando...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    <span>Deletar Todos</span>
+                  </>
+                )}
+              </button>
+            </div>
+            <div className="mt-2 p-3 bg-red-50 rounded-lg border border-red-200">
+              <p className="text-sm text-red-800">
+                <strong>⚠️ Cuidado:</strong> Esta ação remove todos os horários disponíveis e bloqueados. 
+                Horários com agendamentos confirmados serão preservados.
+              </p>
             </div>
           </div>
           
