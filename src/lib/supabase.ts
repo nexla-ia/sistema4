@@ -431,16 +431,16 @@ export const getAllSlots = async (date: string) => {
     .from('slots')
     .select(`
       *,
-      booking:bookings(
+      bookings:bookings(
         *,
-        customer:customers(*),
+        client:customers(*),
         booking_services(
           *,
           service:services(*)
         )
       )
     `)
-    .eq('salon_id', SALON_ID)
+    .eq('salon_id', '4f59cc12-91c1-44fc-b158-697b9056e0cb')
     .eq('date', date)
     .order('time_slot');
   
@@ -487,9 +487,9 @@ export const getDefaultSchedule = async (): Promise<{ data: DefaultSchedule | nu
   const { data, error } = await supabase
     .from('working_hours')
     .select('*')
-    .eq('salon_id', SALON_ID)
+    .eq('salon_id', '4f59cc12-91c1-44fc-b158-697b9056e0cb')
     .eq('day_of_week', 1) // Segunda-feira como referência
-    .single();
+    .maybeSingle();
   
   if (error && error.code !== 'PGRST116') {
     console.error('Erro ao buscar configuração:', error);
@@ -511,11 +511,11 @@ export const getDefaultSchedule = async (): Promise<{ data: DefaultSchedule | nu
   }
   
   const schedule: DefaultSchedule = {
-    open_time: data.open_time || '08:00',
-    close_time: data.close_time || '18:00',
+    open_time: data.open_time ? data.open_time.toString() : '08:00',
+    close_time: data.close_time ? data.close_time.toString() : '18:00',
     slot_duration: data.slot_duration || 30,
-    break_start: data.break_start || undefined,
-    break_end: data.break_end || undefined
+    break_start: data.break_start ? data.break_start.toString() : undefined,
+    break_end: data.break_end ? data.break_end.toString() : undefined
   };
   
   console.log('✅ Configuração carregada:', schedule);
@@ -531,7 +531,7 @@ export const saveDefaultSchedule = async (schedule: DefaultSchedule) => {
     
     for (let day = 0; day <= 6; day++) {
       workingHoursData.push({
-        salon_id: SALON_ID,
+        salon_id: '4f59cc12-91c1-44fc-b158-697b9056e0cb',
         day_of_week: day,
         is_open: day === 0 ? false : true, // Domingo fechado por padrão
         open_time: schedule.open_time,
@@ -580,7 +580,7 @@ export const generateSlotsWithSavedConfig = async (startDate: string, endDate: s
   
   // Gerar slots usando a função RPC
   const { error } = await supabase.rpc('generate_slots_for_period', {
-    p_salon_id: SALON_ID,
+    p_salon_id: '4f59cc12-91c1-44fc-b158-697b9056e0cb',
     p_start_date: startDate,
     p_end_date: endDate,
     p_open_time: schedule.open_time,
