@@ -173,11 +173,6 @@ const ScheduleManager = ({ salon }: ScheduleManagerProps) => {
       return;
     }
     
-    // Confirmar ação
-    if (!confirm('⚠️ ATENÇÃO: Esta ação irá deletar TODOS os horários disponíveis e bloqueados (horários agendados serão preservados). Tem certeza que deseja continuar?')) {
-      return;
-    }
-    
     setDeleting(true);
     try {
       console.log('=== DELETANDO TODOS OS SLOTS ===');
@@ -418,36 +413,75 @@ const ScheduleManager = ({ salon }: ScheduleManagerProps) => {
           
           {/* Botão para deletar todos os slots */}
           <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <h5 className="font-medium text-gray-900">Limpar Horários</h5>
-                <p className="text-sm text-gray-600">Remove todos os horários disponíveis e bloqueados</p>
+            <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl p-6 border border-red-200">
+              <div className="flex items-start space-x-4">
+                <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h5 className="text-lg font-bold text-red-900 mb-2">🗑️ Limpar Todos os Horários</h5>
+                  <p className="text-red-800 mb-4 leading-relaxed">
+                    Remove todos os horários disponíveis e bloqueados do sistema. 
+                    Esta ação é útil quando você quer reconfigurar completamente sua agenda.
+                  </p>
+                  
+                  <div className="bg-white/70 rounded-lg p-4 mb-4 border border-red-200">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <h6 className="font-semibold text-red-900 mb-2">✅ Será Removido:</h6>
+                        <ul className="text-red-800 space-y-1">
+                          <li>• Horários disponíveis</li>
+                          <li>• Horários bloqueados</li>
+                          <li>• Slots vazios</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <h6 className="font-semibold text-green-900 mb-2">🛡️ Será Preservado:</h6>
+                        <ul className="text-green-800 space-y-1">
+                          <li>• Agendamentos confirmados</li>
+                          <li>• Dados dos clientes</li>
+                          <li>• Histórico de atendimentos</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-red-700">
+                      💡 <strong>Dica:</strong> Use esta função quando quiser recriar sua agenda do zero
+                    </div>
+                    <button
+                      onClick={() => {
+                        showConfirm(
+                          '🗑️ Confirmar Limpeza de Horários',
+                          'Esta ação irá remover TODOS os horários disponíveis e bloqueados do sistema. Agendamentos confirmados serão preservados.\n\nEsta ação não pode ser desfeita. Tem certeza que deseja continuar?',
+                          handleDeleteAllSlots,
+                          'Sim, Deletar Todos',
+                          'Cancelar'
+                        );
+                      }}
+                      disabled={deleting}
+                      className="bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-red-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-2"
+                    >
+                      {deleting ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                          <span>Deletando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          <span>Deletar Todos os Horários</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
-              <button
-                onClick={handleDeleteAllSlots}
-                disabled={deleting}
-                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center space-x-2"
-              >
-                {deleting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>Deletando...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    <span>Deletar Todos</span>
-                  </>
-                )}
-              </button>
-            </div>
-            <div className="mt-2 p-3 bg-red-50 rounded-lg border border-red-200">
-              <p className="text-sm text-red-800">
-                <strong>⚠️ Cuidado:</strong> Esta ação remove todos os horários disponíveis e bloqueados. 
-                Horários com agendamentos confirmados serão preservados.
-              </p>
             </div>
           </div>
           
