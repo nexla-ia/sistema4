@@ -143,14 +143,15 @@ export const getServices = async () => {
 };
 
 export const createService = async (
-  service: Omit<Service, 'id' | 'created_at' | 'updated_at' | 'salon_id'>
+  service: Omit<Service, 'id' | 'created_at' | 'updated_at' | 'salon_id'>,
+  salonId: string
 ) => {
   const { data, error } = await supabase
     .from('services')
     .insert([
       {
         ...service,
-        salon_id: SALON_ID,
+        salon_id: salonId,
       }
     ])
     .select()

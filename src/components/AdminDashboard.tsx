@@ -126,7 +126,7 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
         active: true
       };
 
-      const { data, error } = await createService(serviceData);
+      const { data, error } = await createService(serviceData, salon.id);
       if (error) throw error;
 
       if (data) {
