@@ -81,9 +81,14 @@ const ScheduleManager = ({ salon }: ScheduleManagerProps) => {
 
   // Salvar configuração padrão
   const handleSaveDefaultSchedule = async () => {
+    if (!salon) {
+      showError('Erro', 'Salão não encontrado');
+      return;
+    }
+    
     try {
       console.log('=== SALVANDO CONFIGURAÇÃO ===');
-      const { error } = await saveDefaultSchedule(defaultSchedule);
+      const { error } = await saveDefaultSchedule(defaultSchedule, salon.id);
       
       if (error) {
         console.error('Erro ao salvar:', error);
@@ -119,6 +124,11 @@ const ScheduleManager = ({ salon }: ScheduleManagerProps) => {
   };
 
   const generateSlots = async () => {
+    if (!salon) {
+      showError('Erro', 'Salão não encontrado');
+      return;
+    }
+    
     setGenerating(true);
     try {
       console.log('=== GERANDO SLOTS ===');
@@ -126,7 +136,7 @@ const ScheduleManager = ({ salon }: ScheduleManagerProps) => {
       console.log('Configuração atual:', defaultSchedule);
       
       // Primeiro salvar a configuração atual
-      const { error: saveError } = await saveDefaultSchedule(defaultSchedule);
+      const { error: saveError } = await saveDefaultSchedule(defaultSchedule, salon.id);
       if (saveError) {
         console.error('Erro ao salvar configuração:', saveError);
         showError('Erro', 'Erro ao salvar configuração antes de gerar slots');
@@ -136,7 +146,8 @@ const ScheduleManager = ({ salon }: ScheduleManagerProps) => {
       // Gerar slots usando configuração salva
       const { error } = await generateSlotsWithSavedConfig(
         generatePeriod.start_date,
-        generatePeriod.end_date
+        generatePeriod.end_date,
+        salon.id
       );
 
       if (error) throw error;

@@ -522,7 +522,7 @@ export const getDefaultSchedule = async (): Promise<{ data: DefaultSchedule | nu
   return { data: schedule, error: null };
 };
 
-export const saveDefaultSchedule = async (schedule: DefaultSchedule) => {
+export const saveDefaultSchedule = async (schedule: DefaultSchedule, salonId: string) => {
   console.log('💾 Salvando configuração padrão:', schedule);
   
   try {
@@ -531,7 +531,7 @@ export const saveDefaultSchedule = async (schedule: DefaultSchedule) => {
     
     for (let day = 0; day <= 6; day++) {
       workingHoursData.push({
-        salon_id: '4f59cc12-91c1-44fc-b158-697b9056e0cb',
+        salon_id: salonId,
         day_of_week: day,
         is_open: day === 0 ? false : true, // Domingo fechado por padrão
         open_time: schedule.open_time,
@@ -562,7 +562,7 @@ export const saveDefaultSchedule = async (schedule: DefaultSchedule) => {
   }
 };
 
-export const generateSlotsWithSavedConfig = async (startDate: string, endDate: string) => {
+export const generateSlotsWithSavedConfig = async (startDate: string, endDate: string, salonId: string) => {
   console.log('🔄 Gerando slots com configuração salva:', { startDate, endDate });
   
   // Primeiro, buscar a configuração salva
@@ -580,7 +580,7 @@ export const generateSlotsWithSavedConfig = async (startDate: string, endDate: s
   
   // Gerar slots usando a função RPC
   const { error } = await supabase.rpc('generate_slots_for_period', {
-    p_salon_id: '4f59cc12-91c1-44fc-b158-697b9056e0cb',
+    p_salon_id: salonId,
     p_start_date: startDate,
     p_end_date: endDate,
     p_open_time: schedule.open_time,
