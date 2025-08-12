@@ -62,7 +62,6 @@ const ScheduleManager = ({ salon }: ScheduleManagerProps) => {
   });
 
   const { modal, hideModal, showSuccess, showError } = useModal();
-  const { modal, hideModal, showSuccess, showError, showConfirm } = useModal();
 
   // Carregar configuração padrão salva
   const loadDefaultSchedule = async () => {
