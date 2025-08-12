@@ -20,9 +20,9 @@ interface SlotData {
   status: 'available' | 'blocked' | 'booked';
   reason?: string;
   booking_id?: string;
-  bookings?: {
+  booking?: {
     id: string;
-    client: {
+    customer: {
       name: string;
       phone: string;
     };
@@ -490,13 +490,13 @@ const ScheduleManager = ({ salon }: ScheduleManagerProps) => {
                     </div>
                     
                     {/* Informações do cliente se agendado */}
-                    {slot.status === 'booked' && slot.bookings?.client && (
+                    {slot.status === 'booked' && slot.booking?.customer && (
                       <div className="text-xs text-center mb-2 p-1 bg-white/50 rounded">
                         <div className="flex items-center justify-center space-x-1">
                           <Users className="w-3 h-3" />
-                          <span className="font-medium">{slot.bookings.client.name}</span>
+                          <span className="font-medium">{slot.booking.customer.name}</span>
                         </div>
-                        <div className="text-gray-600">{slot.bookings.client.phone}</div>
+                        <div className="text-gray-600">{slot.booking.customer.phone}</div>
                       </div>
                     )}
                     

@@ -427,30 +427,44 @@ export const getAvailableSlots = async (date: string) => {
 export const getAllSlots = async (date: string) => {
   console.log('🕐 Buscando todos os slots para:', date);
   
+  // Get the first active salon since we don't have user context here
+  const { data: salon, error: salonError } = await supabase
+    .from('salons')
+    .select('id')
+    .eq('active', true)
+    .limit(1)
+    .maybeSingle();
+  
+  if (salonError || !salon) {
+    console.error('Erro ao buscar salão:', salonError);
+    return { data: [], error: salonError };
+  }
+  
   const { data, error } = await supabase
     .from('slots')
     .select(`
       *,
-      bookings:bookings(
+      booking:bookings(
         *,
-        client:customers(*),
+        customer:customers(*),
         booking_services(
           *,
           service:services(*)
         )
       )
     `)
-    .eq('salon_id', '4f59cc12-91c1-44fc-b158-697b9056e0cb')
+    .eq('salon_id', salon.id)
     .eq('date', date)
     .order('time_slot');
   
   if (error) {
     console.error('Erro ao buscar slots:', error);
+    return { data: [], error };
   } else {
     console.log(`✅ ${data?.length || 0} slots encontrados`);
   }
   
-  return { data, error };
+  return { data: data || [], error };
 };
 
 export const saveBlockedSlots = async (date: string, timeSlots: string[], reason: string) => {
