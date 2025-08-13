@@ -291,21 +291,20 @@ export const createBooking = async (bookingData: {
     const salonId = salon.id;
     
     // 1. Verificar se o slot está disponível
-    // Converter horário para formato com segundos (HH:MM:SS)
-    const formattedTime = formatTimeWithSeconds(bookingData.time);
+    // O horário será convertido automaticamente pela query SQL
+    const timeToSearch = bookingData.time;
     
     console.log('🔍 Buscando slot com parâmetros:');
     console.log('- salon_id:', salonId);
     console.log('- date:', bookingData.date);
-    console.log('- time original:', bookingData.time);
-    console.log('- time formatado:', formattedTime);
+    console.log('- time:', timeToSearch);
     
     const { data: slot, error: slotError } = await supabase
       .from('slots')
       .select('*')
       .eq('salon_id', salonId)
       .eq('date', bookingData.date)
-      .eq('time_slot', formattedTime)
+      .eq('time_slot', formatTimeWithSeconds(timeToSearch)) // Ainda precisamos converter aqui
       .eq('status', 'available')
       .maybeSingle();
     
@@ -403,38 +402,30 @@ export const createBooking = async (bookingData: {
     console.log('Parâmetros para atualização:');
     console.log('- salon_id:', salonId);
     console.log('- date:', bookingData.date);
-    console.log('- time_slot:', formattedTime);
+    console.log('- time_slot:', formatTimeWithSeconds(bookingData.time));
     console.log('- booking_id:', booking.id);
     
-    console.log('🔄 Atualizando slot para booked...');
-console.log('Parâmetros para atualização:', { salonId, date: bookingData.date, formattedTime, bookingId: booking.id });
+    const { data: updatedSlot, error: slotUpdateError } = await supabase
+      .from('slots')
+      .update({ status: 'booked', booking_id: booking.id })
+      .eq('salon_id', salonId)
+      .eq('date', bookingData.date)
+      .eq('time_slot', formatTimeWithSeconds(bookingData.time))
+      .eq('status', 'available')
+      .select('id, status, booking_id')
+      .maybeSingle();
 
-const { data: updatedSlot, error: slotUpdateError } = await supabase
-  .from('slots')
-  .update({ status: 'booked', booking_id: booking.id })
-  .eq('salon_id', salonId)
-  .eq('date', bookingData.date)
-  .eq('time_slot', formattedTime)
-  .eq('status', 'available')        // <- só troca se ainda estiver livre
-  .select('id, status, booking_id') // <- obriga retornar a linha alterada
-  .maybeSingle();                   // <- evita PGRST116
+    if (slotUpdateError) {
+      console.error('❌ Erro ao atualizar slot:', slotUpdateError);
+      return { data: null, error: { message: 'Falha ao bloquear horário' } };
+    }
 
-if (slotUpdateError) {
-  console.error('❌ Erro ao atualizar slot:', slotUpdateError);
-  // (opcional) rollback do booking:
-  // await supabase.from('bookings').delete().eq('id', booking.id);
-  return { data: null, error: { message: 'Falha ao bloquear horário' } };
-}
+    if (!updatedSlot) {
+      console.warn('⚠️ Nenhum slot foi atualizado (provavelmente já indisponível)');
+      return { data: null, error: { code: 'SLOT_UNAVAILABLE', message: 'Horário não disponível' } };
+    }
 
-if (!updatedSlot) {
-  console.warn('⚠️ Nenhum slot foi atualizado (provavelmente já indisponível ou sem permissão). Fazendo rollback.');
-  // (opcional) rollback do booking e serviços:
-  // await supabase.from('booking_services').delete().eq('booking_id', booking.id);
-  // await supabase.from('bookings').delete().eq('id', booking.id);
-  return { data: null, error: { code: 'SLOT_UNAVAILABLE', message: 'Horário não disponível' } };
-}
-
-console.log('✅ Slot realmente atualizado:', updatedSlot);
+    console.log('✅ Slot atualizado:', updatedSlot);
 
     console.log('✅ Agendamento criado com sucesso:', booking);
     return { data: booking, error: null };
@@ -735,8 +726,8 @@ export const saveDefaultSchedule = async (schedule: DefaultSchedule, salonId: st
 export const generateSlotsWithSavedConfig = async (startDate: string, endDate: string, salonId: string) => {
   console.log('🔄 Gerando slots com configuração salva:', { startDate, endDate });
   
-  // Primeiro, buscar a configuração salva
-  const { data: schedule, error: configError } = await getDefaultSchedule();
+  // Primeiro, buscar a configuração salva para este salão
+  const { data: schedule, error: configError } = await getDefaultSchedule(salonId);
   
   if (configError) {
     console.error('❌ Erro ao buscar configuração:', configError);
@@ -753,11 +744,11 @@ export const generateSlotsWithSavedConfig = async (startDate: string, endDate: s
     p_salon_id: salonId,
     p_start_date: startDate,
     p_end_date: endDate,
-    p_open_time: formatTimeWithSeconds(schedule.open_time),
-    p_close_time: formatTimeWithSeconds(schedule.close_time),
+    p_open_time: schedule.open_time, // A função SQL vai converter automaticamente
+    p_close_time: schedule.close_time,
     p_slot_duration: schedule.slot_duration,
-    p_break_start: schedule.break_start ? formatTimeWithSeconds(schedule.break_start) : null,
-    p_break_end: schedule.break_end ? formatTimeWithSeconds(schedule.break_end) : null
+    p_break_start: schedule.break_start || null,
+    p_break_end: schedule.break_end || null
   });
   
   if (error) {
