@@ -418,6 +418,15 @@ if (!updatedSlot) {
 
 console.log('✅ Slot realmente atualizado:', updatedSlot);
 
+    console.log('✅ Agendamento criado com sucesso:', booking);
+    return { data: booking, error: null };
+    
+  } catch (error) {
+    console.error('❌ Erro inesperado ao criar agendamento:', error);
+    return { data: null, error };
+  }
+};
+
 export const getBookings = async (salonId: string, date?: string) => {
   console.log('📅 Buscando agendamentos para:', date || 'todas as datas');
   
