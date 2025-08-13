@@ -411,17 +411,38 @@ export const updateBookingStatus = async (bookingId: string, status: Booking['st
 export const getAvailableSlots = async (date: string) => {
   console.log('🕐 Buscando slots disponíveis para:', date);
   
+  // Get the first active salon since we don't have user context here
+  const { data: salon, error: salonError } = await supabase
+    .from('salons')
+    .select('id')
+    .eq('active', true)
+    .limit(1)
+    .maybeSingle();
+  
+  if (salonError || !salon) {
+    console.error('Erro ao buscar salão:', salonError);
+    return { data: [], error: salonError };
+  }
+  
+  console.log('Salão encontrado:', salon.id);
+  
   const { data, error } = await supabase
     .from('slots')
     .select('*')
-    .eq('salon_id', SALON_ID)
+    .eq('salon_id', salon.id)
     .eq('date', date)
     .eq('status', 'available')
     .order('time_slot');
   
-  console.log(`✅ ${data?.length || 0} slots disponíveis encontrados`);
+  if (error) {
+    console.error('Erro ao buscar slots:', error);
+    return { data: [], error };
+  }
   
-  return { data, error };
+  console.log(`✅ ${data?.length || 0} slots disponíveis encontrados para ${date}`);
+  console.log('Slots encontrados:', data);
+  
+  return { data: data || [], error };
 };
 
 export const getAllSlots = async (date: string) => {

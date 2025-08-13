@@ -110,12 +110,18 @@ const BookingForm = ({ selectedServices, onBack, salon }: BookingFormProps) => {
       console.log('Slots retornados da API:', slots);
       console.log('Quantidade de slots disponíveis:', slots?.length || 0);
       
+      if (!slots || slots.length === 0) {
+        console.warn('⚠️ Nenhum slot encontrado para a data:', date);
+        console.warn('💡 Verifique se existem slots gerados no painel administrativo');
+      }
+      
       // Converter formato da API para o formato esperado pelo componente
       const formattedSlots = (slots || []).map(slot => ({
         time: slot.time_slot,
         available: slot.status === 'available'
       }));
       
+      console.log('Slots formatados:', formattedSlots);
       setAvailableSlots(formattedSlots);
     } catch (error) {
       console.error('Error fetching available slots:', error);
