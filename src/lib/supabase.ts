@@ -388,41 +388,35 @@ export const createBooking = async (bookingData: {
     console.log('- time_slot:', formattedTime);
     console.log('- booking_id:', booking.id);
     
-    const { error: slotUpdateError } = await supabase
-      .from('slots')
-      .update({ 
-        status: 'booked', 
-        booking_id: booking.id 
-      })
-      .eq('salon_id', salonId)
-      .eq('date', bookingData.date)
-      .eq('time_slot', formattedTime);
-    
-    if (slotUpdateError) {
-      console.error('❌ Erro ao atualizar slot:', slotUpdateError);
-      
-      // Tentar buscar o slot para debug
-      const { data: debugSlot, error: debugError } = await supabase
-        .from('slots')
-        .select('*')
-        .eq('salon_id', salonId)
-        .eq('date', bookingData.date)
-        .eq('time_slot', formattedTime);
-      
-      console.log('🔍 Debug - Slot encontrado para atualização:', debugSlot);
-      console.log('🔍 Debug - Erro na busca:', debugError);
-    } else {
-      console.log('✅ Slot atualizado para booked com sucesso');
-    }
-    
-    console.log('✅ Agendamento criado com sucesso:', booking);
-    return { data: booking, error: null };
-    
-  } catch (error) {
-    console.error('❌ Erro inesperado ao criar agendamento:', error);
-    return { data: null, error };
-  }
-};
+    console.log('🔄 Atualizando slot para booked...');
+console.log('Parâmetros para atualização:', { salonId, date: bookingData.date, formattedTime, bookingId: booking.id });
+
+const { data: updatedSlot, error: slotUpdateError } = await supabase
+  .from('slots')
+  .update({ status: 'booked', booking_id: booking.id })
+  .eq('salon_id', salonId)
+  .eq('date', bookingData.date)
+  .eq('time_slot', formattedTime)
+  .eq('status', 'available')        // <- só troca se ainda estiver livre
+  .select('id, status, booking_id') // <- obriga retornar a linha alterada
+  .maybeSingle();                   // <- evita PGRST116
+
+if (slotUpdateError) {
+  console.error('❌ Erro ao atualizar slot:', slotUpdateError);
+  // (opcional) rollback do booking:
+  // await supabase.from('bookings').delete().eq('id', booking.id);
+  return { data: null, error: { message: 'Falha ao bloquear horário' } };
+}
+
+if (!updatedSlot) {
+  console.warn('⚠️ Nenhum slot foi atualizado (provavelmente já indisponível ou sem permissão). Fazendo rollback.');
+  // (opcional) rollback do booking e serviços:
+  // await supabase.from('booking_services').delete().eq('booking_id', booking.id);
+  // await supabase.from('bookings').delete().eq('id', booking.id);
+  return { data: null, error: { code: 'SLOT_UNAVAILABLE', message: 'Horário não disponível' } };
+}
+
+console.log('✅ Slot realmente atualizado:', updatedSlot);
 
 export const getBookings = async (salonId: string, date?: string) => {
   console.log('📅 Buscando agendamentos para:', date || 'todas as datas');
