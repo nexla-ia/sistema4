@@ -381,6 +381,13 @@ export const createBooking = async (bookingData: {
     }
     
     // 7. Atualizar o slot para 'booked'
+    console.log('🔄 Atualizando slot para booked...');
+    console.log('Parâmetros para atualização:');
+    console.log('- salon_id:', salonId);
+    console.log('- date:', bookingData.date);
+    console.log('- time_slot:', formattedTime);
+    console.log('- booking_id:', booking.id);
+    
     const { error: slotUpdateError } = await supabase
       .from('slots')
       .update({ 
@@ -393,6 +400,17 @@ export const createBooking = async (bookingData: {
     
     if (slotUpdateError) {
       console.error('❌ Erro ao atualizar slot:', slotUpdateError);
+      
+      // Tentar buscar o slot para debug
+      const { data: debugSlot, error: debugError } = await supabase
+        .from('slots')
+        .select('*')
+        .eq('salon_id', salonId)
+        .eq('date', bookingData.date)
+        .eq('time_slot', formattedTime);
+      
+      console.log('🔍 Debug - Slot encontrado para atualização:', debugSlot);
+      console.log('🔍 Debug - Erro na busca:', debugError);
     } else {
       console.log('✅ Slot atualizado para booked com sucesso');
     }
