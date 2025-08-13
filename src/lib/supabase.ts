@@ -266,7 +266,7 @@ export const createBooking = async (bookingData: {
         data: null, 
         error: { 
           message: 'Horário não disponível', 
-          code: 'SLOT_NOT_AVAILABLE' 
+          code: 'SLOT_UNAVAILABLE' 
         } 
       };
     }
