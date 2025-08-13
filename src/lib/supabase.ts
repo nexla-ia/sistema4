@@ -290,21 +290,32 @@ export const createBooking = async (bookingData: {
     
     const salonId = salon.id;
     
-    // 1. Verificar se o slot está disponível
-    // O horário será convertido automaticamente pela query SQL
-    const timeToSearch = bookingData.time;
+    // 1. Primeiro, vamos listar todos os slots para debug
+    console.log('🔍 Listando todos os slots para debug:');
+    const { data: allSlots, error: debugError } = await supabase
+      .from('slots')
+      .select('*')
+      .eq('salon_id', salonId)
+      .eq('date', bookingData.date);
+    
+    console.log('Todos os slots encontrados:', allSlots);
+    console.log('Erro na busca de debug:', debugError);
+    
+    // 2. Verificar se o slot está disponível
+    const timeToSearch = formatTimeWithSeconds(bookingData.time);
     
     console.log('🔍 Buscando slot com parâmetros:');
     console.log('- salon_id:', salonId);
     console.log('- date:', bookingData.date);
-    console.log('- time:', timeToSearch);
+    console.log('- time original:', bookingData.time);
+    console.log('- time formatado:', timeToSearch);
     
     const { data: slot, error: slotError } = await supabase
       .from('slots')
       .select('*')
       .eq('salon_id', salonId)
       .eq('date', bookingData.date)
-      .eq('time_slot', formatTimeWithSeconds(timeToSearch)) // Ainda precisamos converter aqui
+      .eq('time_slot', timeToSearch)
       .eq('status', 'available')
       .maybeSingle();
     
@@ -320,12 +331,34 @@ export const createBooking = async (bookingData: {
     }
     
     if (!slot) {
-      console.error('❌ Slot não encontrado para:', {
+      console.error('❌ Slot não encontrado ou não disponível para:', {
         salon_id: salonId,
         date: bookingData.date,
-        time: bookingData.time,
+        time_original: bookingData.time,
+        time_formatted: timeToSearch,
         status: 'available'
       });
+      
+      // Verificar se o slot existe mas com status diferente
+      const { data: existingSlot } = await supabase
+        .from('slots')
+        .select('*')
+        .eq('salon_id', salonId)
+        .eq('date', bookingData.date)
+        .eq('time_slot', timeToSearch)
+        .maybeSingle();
+      
+      if (existingSlot) {
+        console.log('❌ Slot existe mas com status:', existingSlot.status);
+        return { 
+          data: null, 
+          error: { 
+            message: `Horário já está ${existingSlot.status === 'booked' ? 'ocupado' : 'bloqueado'}`, 
+            code: 'SLOT_UNAVAILABLE' 
+          } 
+        };
+      }
+      
       return { 
         data: null, 
         error: { 
@@ -335,7 +368,9 @@ export const createBooking = async (bookingData: {
       };
     }
     
-    // 2. Buscar ou criar cliente
+    console.log('✅ Slot encontrado:', slot);
+    
+    // 3. Buscar ou criar cliente
     const { data: customer, error: customerError } = await findOrCreateCustomer(bookingData.customer);
     
     if (customerError || !customer) {
@@ -343,7 +378,7 @@ export const createBooking = async (bookingData: {
       return { data: null, error: customerError };
     }
     
-    // 3. Buscar informações dos serviços
+    // 4. Buscar informações dos serviços
     const { data: services, error: servicesError } = await supabase
       .from('services')
       .select('*')
@@ -354,11 +389,11 @@ export const createBooking = async (bookingData: {
       return { data: null, error: { message: 'Serviços não encontrados' } };
     }
     
-    // 4. Calcular totais
+    // 5. Calcular totais
     const totalPrice = services.reduce((sum, service) => sum + Number(service.price), 0);
     const totalDuration = services.reduce((sum, service) => sum + service.duration_minutes, 0);
     
-    // 5. Criar o agendamento
+    // 6. Criar o agendamento
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
       .insert([{
@@ -379,7 +414,7 @@ export const createBooking = async (bookingData: {
       return { data: null, error: bookingError };
     }
     
-    // 6. Criar os serviços do agendamento
+    // 7. Criar os serviços do agendamento
     const bookingServices = services.map(service => ({
       booking_id: booking.id,
       service_id: service.id,
@@ -397,12 +432,12 @@ export const createBooking = async (bookingData: {
       return { data: null, error: servicesLinkError };
     }
     
-    // 7. Atualizar o slot para 'booked'
+    // 8. Atualizar o slot para 'booked'
     console.log('🔄 Atualizando slot para booked...');
     console.log('Parâmetros para atualização:');
     console.log('- salon_id:', salonId);
     console.log('- date:', bookingData.date);
-    console.log('- time_slot:', formatTimeWithSeconds(bookingData.time));
+    console.log('- time_slot:', timeToSearch);
     console.log('- booking_id:', booking.id);
     
     const { data: updatedSlot, error: slotUpdateError } = await supabase
@@ -410,7 +445,7 @@ export const createBooking = async (bookingData: {
       .update({ status: 'booked', booking_id: booking.id })
       .eq('salon_id', salonId)
       .eq('date', bookingData.date)
-      .eq('time_slot', formatTimeWithSeconds(bookingData.time))
+      .eq('time_slot', timeToSearch)
       .eq('status', 'available')
       .select('id, status, booking_id')
       .maybeSingle();
