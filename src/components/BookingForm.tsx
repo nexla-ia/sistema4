@@ -176,12 +176,19 @@ const BookingForm = ({ selectedServices, onBack, salon }: BookingFormProps) => {
         // Tratar diferentes tipos de erro
         if (error.code === 'SLOT_UNAVAILABLE') {
           showError('Horário Indisponível', error.message);
+          // Automatically refresh available slots when slot becomes unavailable
+          fetchAvailableSlots(selectedDate);
+          setSelectedTime(''); // Clear selected time since it's no longer available
         } else if (error.code === 'DUPLICATE_BOOKING') {
           showError('Horário Ocupado', error.message);
+          fetchAvailableSlots(selectedDate);
+          setSelectedTime('');
         } else if (error.code === 'CUSTOMER_ERROR') {
           showError('Erro nos Dados', error.message);
         } else {
-          showError('Erro', 'Erro ao criar agendamento. Verifique os dados e tente novamente.');
+          showError('Erro', 'Erro ao criar agendamento. Os horários foram atualizados, por favor selecione novamente.');
+          fetchAvailableSlots(selectedDate);
+          setSelectedTime('');
         }
         return;
       }
@@ -441,7 +448,15 @@ const BookingForm = ({ selectedServices, onBack, salon }: BookingFormProps) => {
                   <div className="mb-4 flex items-center justify-between">
                     <p className="text-sm text-gray-600">
                       {availableSlots.filter(slot => slot.available).length} horários disponíveis
+                      {loading && <span className="ml-2 text-blue-500">(atualizando...)</span>}
                     </p>
+                    <button
+                      onClick={() => fetchAvailableSlots(selectedDate)}
+                      disabled={loading}
+                      className="text-sm text-blue-500 hover:text-blue-600 disabled:text-gray-400"
+                    >
+                      🔄 Atualizar
+                    </button>
                     <div className="flex items-center space-x-4 text-xs">
                       <div className="flex items-center space-x-1">
                         <div className="w-3 h-3 bg-green-200 border border-green-400 rounded"></div>
@@ -480,12 +495,22 @@ const BookingForm = ({ selectedServices, onBack, salon }: BookingFormProps) => {
                   
                   {availableSlots.filter(slot => slot.available).length === 0 && (
                     <div className="text-center py-8">
-                      <p className="text-gray-500 mb-4">Não há horários disponíveis para esta data.</p>
+                      <p className="text-gray-500 mb-4">
+                        Não há horários disponíveis para esta data.
+                        {loading && <span className="block text-sm mt-2">Atualizando horários...</span>}
+                      </p>
                       <button
                         onClick={() => setStep(1)}
                         className="text-rose-500 hover:text-rose-600 font-medium"
                       >
                         Escolher outra data
+                      </button>
+                      <button
+                        onClick={() => fetchAvailableSlots(selectedDate)}
+                        className="ml-4 text-blue-500 hover:text-blue-600 font-medium"
+                        disabled={loading}
+                      >
+                        {loading ? 'Atualizando...' : 'Atualizar horários'}
                       </button>
                     </div>
                   )}
