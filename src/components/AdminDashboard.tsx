@@ -616,8 +616,10 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
                       <input
                         type="text"
                         value={newService.name}
-                        onChange={(e) => setNewService(prev => ({ ...prev, name: e.target.value }))}
+                       onChange={(e) => setNewService(prev => ({ ...prev, name: e.target.value }))}
+                       onFocus={(e) => e.target.select()}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-clinic-500 focus:border-transparent"
+                       placeholder="Ex: Massagem Relaxante"
                       />
                     </div>
                     <div>
@@ -625,35 +627,62 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
                       <input
                         type="text"
                         value={newService.category}
-                        onChange={(e) => setNewService(prev => ({ ...prev, category: e.target.value }))}
+                       onChange={(e) => setNewService(prev => ({ ...prev, category: e.target.value }))}
+                       onFocus={(e) => e.target.select()}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-clinic-500 focus:border-transparent"
+                       placeholder="Ex: Massoterapia"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Preço (R$)</label>
                       <input
-                        type="number"
-                        value={newService.price}
-                        onChange={(e) => setNewService(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+                       type="text"
+                       inputMode="decimal"
+                       value={newService.price === 0 ? '' : newService.price.toString()}
+                       onChange={(e) => {
+                         const value = e.target.value.replace(/[^\d.,]/g, '').replace(',', '.');
+                         const numValue = value === '' ? 0 : parseFloat(value) || 0;
+                         setNewService(prev => ({ ...prev, price: numValue }));
+                       }}
+                       onFocus={(e) => {
+                         if (e.target.value === '0') {
+                           e.target.value = '';
+                         }
+                         e.target.select();
+                       }}
+                       onBlur={(e) => {
+                         if (e.target.value === '') {
+                           setNewService(prev => ({ ...prev, price: 0 }));
+                         }
+                       }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-clinic-500 focus:border-transparent"
+                       placeholder="0,00"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Duração (min)</label>
-                      <input
-                        type="number"
+                     <select
                         value={newService.duration_minutes}
-                        onChange={(e) => setNewService(prev => ({ ...prev, duration_minutes: parseInt(e.target.value) || 30 }))}
+                       onChange={(e) => setNewService(prev => ({ ...prev, duration_minutes: parseInt(e.target.value) }))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-clinic-500 focus:border-transparent"
-                      />
+                     >
+                       <option value={15}>15 minutos</option>
+                       <option value={30}>30 minutos</option>
+                       <option value={45}>45 minutos</option>
+                       <option value={60}>1 hora</option>
+                       <option value={90}>1h 30min</option>
+                       <option value={120}>2 horas</option>
+                     </select>
                     </div>
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
                       <textarea
                         value={newService.description}
-                        onChange={(e) => setNewService(prev => ({ ...prev, description: e.target.value }))}
+                       onChange={(e) => setNewService(prev => ({ ...prev, description: e.target.value }))}
+                       onFocus={(e) => e.target.select()}
                         rows={3}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-clinic-500 focus:border-transparent"
+                       placeholder="Descreva o serviço oferecido..."
                       />
                     </div>
                     <div>
@@ -696,16 +725,33 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
                           <input
                             type="text"
                             value={editingService.name}
-                            onChange={(e) => setEditingService(prev => prev ? ({ ...prev, name: e.target.value }) : null)}
+                           onChange={(e) => setEditingService(prev => prev ? ({ ...prev, name: e.target.value }) : null)}
+                           onFocus={(e) => e.target.select()}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-clinic-500 focus:border-transparent"
                           />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Preço (R$)</label>
                           <input
-                            type="number"
-                            value={editingService.price}
-                            onChange={(e) => setEditingService(prev => prev ? ({ ...prev, price: parseFloat(e.target.value) || 0 }) : null)}
+                           type="text"
+                           inputMode="decimal"
+                           value={editingService.price === 0 ? '' : editingService.price.toString()}
+                           onChange={(e) => {
+                             const value = e.target.value.replace(/[^\d.,]/g, '').replace(',', '.');
+                             const numValue = value === '' ? 0 : parseFloat(value) || 0;
+                             setEditingService(prev => prev ? ({ ...prev, price: numValue }) : null);
+                           }}
+                           onFocus={(e) => {
+                             if (e.target.value === '0') {
+                               e.target.value = '';
+                             }
+                             e.target.select();
+                           }}
+                           onBlur={(e) => {
+                             if (e.target.value === '') {
+                               setEditingService(prev => prev ? ({ ...prev, price: 0 }) : null);
+                             }
+                           }}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-clinic-500 focus:border-transparent"
                           />
                         </div>
