@@ -251,12 +251,23 @@ export const createBooking = async (bookingData: {
   
   try {
     // 1. Verificar se o slot está disponível
+    // Garantir que o horário tenha o formato correto (HH:MM:SS)
+    const formattedTime = bookingData.time.includes(':') && bookingData.time.split(':').length === 2 
+      ? `${bookingData.time}:00` 
+      : bookingData.time;
+    
+    console.log('🔍 Buscando slot com parâmetros:');
+    console.log('- salon_id:', SALON_ID);
+    console.log('- date:', bookingData.date);
+    console.log('- time original:', bookingData.time);
+    console.log('- time formatado:', formattedTime);
+    
     const { data: slot, error: slotError } = await supabase
       .from('slots')
       .select('*')
       .eq('salon_id', SALON_ID)
       .eq('date', bookingData.date)
-      .eq('time_slot', bookingData.time)
+      .eq('time_slot', formattedTime)
       .eq('status', 'available')
       .maybeSingle();
     
