@@ -462,6 +462,48 @@ export const getBookings = async (salonId: string, date?: string) => {
 export const updateBookingStatus = async (bookingId: string, status: Booking['status']) => {
   console.log('📝 Atualizando status do agendamento:', bookingId, 'para', status);
   
+  // Se o status for 'completed', precisamos liberar o slot
+  if (status === 'completed') {
+    // Primeiro buscar o agendamento para pegar os dados do slot
+    const { data: booking, error: bookingError } = await supabase
+      .from('bookings')
+      .select('salon_id, booking_date, booking_time')
+      .eq('id', bookingId)
+      .single();
+    
+    if (bookingError) {
+      console.error('Erro ao buscar agendamento:', bookingError);
+    } else if (booking) {
+      // Liberar o slot correspondente
+      const formattedTime = booking.booking_time.includes(':') && booking.booking_time.split(':').length === 2 
+        ? `${booking.booking_time}:00` 
+        : booking.booking_time;
+      
+      console.log('🔓 Liberando slot:', {
+        salon_id: booking.salon_id,
+        date: booking.booking_date,
+        time: formattedTime
+      });
+      
+      const { error: slotError } = await supabase
+        .from('slots')
+        .update({ 
+          status: 'available',
+          booking_id: null 
+        })
+        .eq('salon_id', booking.salon_id)
+        .eq('date', booking.booking_date)
+        .eq('time_slot', formattedTime)
+        .eq('booking_id', bookingId);
+      
+      if (slotError) {
+        console.error('❌ Erro ao liberar slot:', slotError);
+      } else {
+        console.log('✅ Slot liberado com sucesso');
+      }
+    }
+  }
+  
   const { data, error } = await supabase
     .from('bookings')
     .update({ status })
