@@ -387,11 +387,14 @@ export const createBooking = async (bookingData: {
         status: 'booked', 
         booking_id: booking.id 
       })
-      .eq('id', slot.id);
+      .eq('salon_id', salonId)
+      .eq('date', bookingData.date)
+      .eq('time_slot', formattedTime);
     
     if (slotUpdateError) {
       console.error('❌ Erro ao atualizar slot:', slotUpdateError);
-      // Continua mesmo com erro no slot, pois o agendamento foi criado
+    } else {
+      console.log('✅ Slot atualizado para booked com sucesso');
     }
     
     console.log('✅ Agendamento criado com sucesso:', booking);
