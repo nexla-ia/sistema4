@@ -245,10 +245,31 @@ export const createBooking = async (bookingData: {
   time: string;
   services: string[];
   notes?: string;
-}, salonId: string) => {
+}) => {
   console.log('📅 Iniciando criação de agendamento:', bookingData);
   
   try {
+    // Get the first active salon since we don't have user context here
+    const { data: salon, error: salonError } = await supabase
+      .from('salons')
+      .select('id')
+      .eq('active', true)
+      .limit(1)
+      .maybeSingle();
+    
+    if (salonError || !salon) {
+      console.error('Erro ao buscar salão:', salonError);
+      return { 
+        data: null, 
+        error: { 
+          message: 'Salão não encontrado', 
+          code: 'SALON_ERROR' 
+        } 
+      };
+    }
+    
+    const salonId = salon.id;
+    
     // 1. Verificar se o slot está disponível
     // Garantir que o horário tenha o formato correto (HH:MM:SS)
     const formattedTime = bookingData.time.includes(':') && bookingData.time.split(':').length === 2 
