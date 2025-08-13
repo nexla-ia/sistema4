@@ -100,20 +100,23 @@ const BookingForm = ({ selectedServices, onBack, salon }: BookingFormProps) => {
   };
 
   // Simulate API call to fetch available slots for selected date
-  const fetchAvailableSlots = async (date: string, serviceIds: string[]) => {
+  const fetchAvailableSlots = async (date: string) => {
     console.log('=== BUSCANDO HORÁRIOS DISPONÍVEIS ===');
     console.log('Data:', date);
     
     setLoading(true);
     try {
-      const totalDuration = selectedServices.reduce((sum, service) => sum + service.duration_minutes, 0);
-      console.log('Duração total dos serviços:', totalDuration, 'minutos');
-      
-      const { data: slots } = await getAvailableSlots(date, totalDuration);
+      const { data: slots } = await getAvailableSlots(date);
       console.log('Slots retornados da API:', slots);
-      console.log('Quantidade de slots disponíveis:', slots?.filter(s => s.available).length || 0);
+      console.log('Quantidade de slots disponíveis:', slots?.length || 0);
       
-      setAvailableSlots(slots || []);
+      // Converter formato da API para o formato esperado pelo componente
+      const formattedSlots = (slots || []).map(slot => ({
+        time: slot.time_slot,
+        available: slot.status === 'available'
+      }));
+      
+      setAvailableSlots(formattedSlots);
     } catch (error) {
       console.error('Error fetching available slots:', error);
       setAvailableSlots([]);
@@ -130,7 +133,7 @@ const BookingForm = ({ selectedServices, onBack, salon }: BookingFormProps) => {
     
     setSelectedDate(date);
     setSelectedTime(''); // Reset selected time when date changes
-    fetchAvailableSlots(date, selectedServices.map(s => s.id));
+    fetchAvailableSlots(date);
   };
 
   const handleConfirm = async () => {
