@@ -143,6 +143,17 @@ const BookingForm = ({ selectedServices, onBack, salon }: BookingFormProps) => {
   };
 
   const handleConfirm = async () => {
+    // Validate required fields before proceeding
+    if (!selectedDate || !selectedTime) {
+      showError('Dados Incompletos', 'Por favor, selecione uma data e horário antes de confirmar o agendamento.');
+      return;
+    }
+
+    if (!customerData.name || !customerData.phone) {
+      showError('Dados Incompletos', 'Por favor, preencha seu nome e telefone antes de confirmar o agendamento.');
+      return;
+    }
+
     setLoading(true);
     try {
       const bookingData = {
