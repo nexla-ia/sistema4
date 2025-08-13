@@ -5,6 +5,26 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Utility function to ensure time format includes seconds
+const formatTimeWithSeconds = (time: string): string => {
+  if (!time) return time;
+  // If time is in HH:MM format, add :00 seconds
+  if (time.includes(':') && time.split(':').length === 2) {
+    return `${time}:00`;
+  }
+  return time;
+};
+
+// Utility function to remove seconds from time for display
+const formatTimeForDisplay = (time: string): string => {
+  if (!time) return time;
+  // If time is in HH:MM:SS format, remove seconds
+  if (time.includes(':') && time.split(':').length === 3) {
+    return time.substring(0, 5); // Get only HH:MM
+  }
+  return time;
+};
+
 // Types
 export interface Service {
   id: string;
@@ -271,10 +291,8 @@ export const createBooking = async (bookingData: {
     const salonId = salon.id;
     
     // 1. Verificar se o slot está disponível
-    // Garantir que o horário tenha o formato correto (HH:MM:SS)
-    const formattedTime = bookingData.time.includes(':') && bookingData.time.split(':').length === 2 
-      ? `${bookingData.time}:00` 
-      : bookingData.time;
+    // Converter horário para formato com segundos (HH:MM:SS)
+    const formattedTime = formatTimeWithSeconds(bookingData.time);
     
     console.log('🔍 Buscando slot com parâmetros:');
     console.log('- salon_id:', salonId);
@@ -475,9 +493,7 @@ export const updateBookingStatus = async (bookingId: string, status: Booking['st
       console.error('Erro ao buscar agendamento:', bookingError);
     } else if (booking) {
       // Liberar o slot correspondente
-      const formattedTime = booking.booking_time.includes(':') && booking.booking_time.split(':').length === 2 
-        ? `${booking.booking_time}:00` 
-        : booking.booking_time;
+      const formattedTime = formatTimeWithSeconds(booking.booking_time);
       
       console.log('🔓 Liberando slot:', {
         salon_id: booking.salon_id,
@@ -552,10 +568,16 @@ export const getAvailableSlots = async (date: string) => {
     return { data: [], error };
   }
   
-  console.log(`✅ ${data?.length || 0} slots disponíveis encontrados para ${date}`);
-  console.log('Slots encontrados:', data);
+  // Convert time format for frontend display (remove seconds)
+  const formattedSlots = (data || []).map(slot => ({
+    ...slot,
+    time_slot: formatTimeForDisplay(slot.time_slot)
+  }));
   
-  return { data: data || [], error };
+  console.log(`✅ ${formattedSlots?.length || 0} slots disponíveis encontrados para ${date}`);
+  console.log('Slots encontrados:', formattedSlots);
+  
+  return { data: formattedSlots || [], error };
 };
 
 export const getAllSlots = async (date: string) => {
@@ -659,11 +681,11 @@ export const getDefaultSchedule = async (salonId: string): Promise<{ data: Defau
   }
   
   const schedule: DefaultSchedule = {
-    open_time: data.open_time ? data.open_time.toString() : '08:00',
-    close_time: data.close_time ? data.close_time.toString() : '18:00',
+    open_time: data.open_time ? formatTimeForDisplay(data.open_time.toString()) : '08:00',
+    close_time: data.close_time ? formatTimeForDisplay(data.close_time.toString()) : '18:00',
     slot_duration: data.slot_duration || 30,
-    break_start: data.break_start ? data.break_start.toString() : undefined,
-    break_end: data.break_end ? data.break_end.toString() : undefined
+    break_start: data.break_start ? formatTimeForDisplay(data.break_start.toString()) : undefined,
+    break_end: data.break_end ? formatTimeForDisplay(data.break_end.toString()) : undefined
   };
   
   console.log('✅ Configuração carregada:', schedule);
@@ -682,10 +704,10 @@ export const saveDefaultSchedule = async (schedule: DefaultSchedule, salonId: st
         salon_id: salonId,
         day_of_week: day,
         is_open: day === 0 ? false : true, // Domingo fechado por padrão
-        open_time: schedule.open_time,
-        close_time: schedule.close_time,
-        break_start: schedule.break_start || null,
-        break_end: schedule.break_end || null,
+        open_time: formatTimeWithSeconds(schedule.open_time),
+        close_time: formatTimeWithSeconds(schedule.close_time),
+        break_start: schedule.break_start ? formatTimeWithSeconds(schedule.break_start) : null,
+        break_end: schedule.break_end ? formatTimeWithSeconds(schedule.break_end) : null,
         slot_duration: schedule.slot_duration
       });
     }
@@ -731,11 +753,11 @@ export const generateSlotsWithSavedConfig = async (startDate: string, endDate: s
     p_salon_id: salonId,
     p_start_date: startDate,
     p_end_date: endDate,
-    p_open_time: schedule.open_time,
-    p_close_time: schedule.close_time,
+    p_open_time: formatTimeWithSeconds(schedule.open_time),
+    p_close_time: formatTimeWithSeconds(schedule.close_time),
     p_slot_duration: schedule.slot_duration,
-    p_break_start: schedule.break_start || null,
-    p_break_end: schedule.break_end || null
+    p_break_start: schedule.break_start ? formatTimeWithSeconds(schedule.break_start) : null,
+    p_break_end: schedule.break_end ? formatTimeWithSeconds(schedule.break_end) : null
   });
   
   if (error) {
