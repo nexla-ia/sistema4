@@ -258,10 +258,26 @@ export const createBooking = async (bookingData: {
       .eq('date', bookingData.date)
       .eq('time_slot', bookingData.time)
       .eq('status', 'available')
-      .single();
+      .maybeSingle();
     
-    if (slotError || !slot) {
-      console.error('❌ Slot não disponível:', slotError);
+    if (slotError) {
+      console.error('❌ Erro ao buscar slot:', slotError);
+      return { 
+        data: null, 
+        error: { 
+          message: 'Erro ao verificar disponibilidade do horário', 
+          code: 'SLOT_ERROR' 
+        } 
+      };
+    }
+    
+    if (!slot) {
+      console.error('❌ Slot não encontrado para:', {
+        salon_id: SALON_ID,
+        date: bookingData.date,
+        time: bookingData.time,
+        status: 'available'
+      });
       return { 
         data: null, 
         error: { 
