@@ -157,20 +157,15 @@ const BookingForm = ({ selectedServices, onBack, salon }: BookingFormProps) => {
     setLoading(true);
     try {
       const bookingData = {
-        booking_date: selectedDate,
-        booking_time: selectedTime,
-        total_price: getTotalPrice(),
-        total_duration_minutes: selectedServices.reduce((sum, service) => sum + service.duration_minutes, 0),
-        notes: customerData.observations,
-        client: {
+        customer: {
           name: customerData.name,
           phone: customerData.phone,
           email: customerData.email
         },
-        services: selectedServices.map(s => ({
-          service_id: s.id,
-          price: s.price
-        }))
+        date: selectedDate,
+        time: selectedTime,
+        services: selectedServices.map(s => s.id),
+        notes: customerData.observations
       };
 
       const { data, error } = await createBooking(bookingData);
