@@ -290,85 +290,97 @@ export const createBooking = async (bookingData: {
     
     const salonId = salon.id;
     
-    // 1. Primeiro, vamos listar todos os slots para debug
-    console.log('🔍 Listando todos os slots para debug:');
+    // 1. First, let's check what slots exist for this date
+    console.log('🔍 Verificando slots existentes para a data:', bookingData.date);
     const { data: allSlots, error: debugError } = await supabase
       .from('slots')
       .select('*')
       .eq('salon_id', salonId)
-      .eq('date', bookingData.date);
+      .eq('date', bookingData.date)
+      .order('time_slot');
     
-    console.log('Todos os slots encontrados:', allSlots);
-    console.log('Erro na busca de debug:', debugError);
+    if (debugError) {
+      console.error('Erro ao buscar slots para debug:', debugError);
+    } else {
+      console.log('Slots encontrados na data:', allSlots?.map(s => ({ time: s.time_slot, status: s.status })));
+    }
     
-    // 2. Verificar se o slot está disponível
-    const timeToSearch = formatTimeWithSeconds(bookingData.time);
+    // 2. Try to find the slot with multiple time format attempts
+    const originalTime = bookingData.time;
+    const timeWithSeconds = formatTimeWithSeconds(originalTime);
     
-    console.log('🔍 Buscando slot com parâmetros:');
-    console.log('- salon_id:', salonId);
-    console.log('- date:', bookingData.date);
-    console.log('- time original:', bookingData.time);
-    console.log('- time formatado:', timeToSearch);
+    console.log('🔍 Tentando encontrar slot para:', {
+      original: originalTime,
+      withSeconds: timeWithSeconds,
+      date: bookingData.date,
+      salonId: salonId
+    });
     
-    const { data: slot, error: slotError } = await supabase
+    // Try different time formats to find the slot
+    let slot = null;
+    let slotError = null;
+    
+    // First attempt: with seconds
+    const { data: slotAttempt1, error: error1 } = await supabase
       .from('slots')
       .select('*')
       .eq('salon_id', salonId)
       .eq('date', bookingData.date)
-      .eq('time_slot', timeToSearch)
+      .eq('time_slot', timeWithSeconds)
       .eq('status', 'available')
       .maybeSingle();
     
-    if (slotError) {
-      console.error('❌ Erro ao buscar slot:', slotError);
-      return { 
-        data: null, 
-        error: { 
-          message: 'Erro ao verificar disponibilidade do horário', 
-          code: 'SLOT_ERROR' 
-        } 
-      };
-    }
-    
-    if (!slot) {
-      console.error('❌ Slot não encontrado ou não disponível para:', {
-        salon_id: salonId,
-        date: bookingData.date,
-        time_original: bookingData.time,
-        time_formatted: timeToSearch,
-        status: 'available'
-      });
-      
-      // Verificar se o slot existe mas com status diferente
-      const { data: existingSlot } = await supabase
+    if (!error1 && slotAttempt1) {
+      slot = slotAttempt1;
+      console.log('✅ Slot encontrado com formato HH:MM:SS');
+    } else {
+      // Second attempt: without seconds
+      const { data: slotAttempt2, error: error2 } = await supabase
         .from('slots')
         .select('*')
         .eq('salon_id', salonId)
         .eq('date', bookingData.date)
-        .eq('time_slot', timeToSearch)
+        .eq('time_slot', originalTime)
+        .eq('status', 'available')
         .maybeSingle();
       
-      if (existingSlot) {
-        console.log('❌ Slot existe mas com status:', existingSlot.status);
-        return { 
-          data: null, 
-          error: { 
-            message: `Horário já está ${existingSlot.status === 'booked' ? 'ocupado' : 'bloqueado'}`, 
-            code: 'SLOT_UNAVAILABLE' 
-          } 
-        };
+      if (!error2 && slotAttempt2) {
+        slot = slotAttempt2;
+        console.log('✅ Slot encontrado com formato HH:MM');
+      } else {
+        slotError = error2 || error1;
+        console.log('❌ Slot não encontrado em nenhum formato');
+        
+        // Check if slot exists with different status
+        const { data: existingSlot } = await supabase
+          .from('slots')
+          .select('*')
+          .eq('salon_id', salonId)
+          .eq('date', bookingData.date)
+          .or(`time_slot.eq.${timeWithSeconds},time_slot.eq.${originalTime}`)
+          .maybeSingle();
+        
+        if (existingSlot) {
+          console.log('❌ Slot existe mas com status:', existingSlot.status);
+          return { 
+            data: null, 
+            error: { 
+              message: `Horário já está ${existingSlot.status === 'booked' ? 'ocupado' : 'bloqueado'}`, 
+              code: 'SLOT_UNAVAILABLE' 
+            } 
+          };
+        } else {
+          console.log('❌ Slot não existe no banco de dados');
+          return { 
+            data: null, 
+            error: { 
+              message: 'Horário não disponível. Verifique se os horários foram gerados corretamente no painel administrativo.', 
+              code: 'SLOT_NOT_FOUND' 
+            } 
+          };
+        }
       }
-      
-      return { 
-        data: null, 
-        error: { 
-          message: 'Horário não disponível', 
-          code: 'SLOT_UNAVAILABLE' 
-        } 
-      };
     }
-    
-    console.log('✅ Slot encontrado:', slot);
     
     // 3. Buscar ou criar cliente
     const { data: customer, error: customerError } = await findOrCreateCustomer(bookingData.customer);
@@ -434,29 +446,29 @@ export const createBooking = async (bookingData: {
     
     // 8. Atualizar o slot para 'booked'
     console.log('🔄 Atualizando slot para booked...');
-    console.log('Parâmetros para atualização:');
-    console.log('- salon_id:', salonId);
-    console.log('- date:', bookingData.date);
-    console.log('- time_slot:', timeToSearch);
-    console.log('- booking_id:', booking.id);
+    console.log('Atualizando slot:', slot.id, 'para booking:', booking.id);
     
     const { data: updatedSlot, error: slotUpdateError } = await supabase
       .from('slots')
       .update({ status: 'booked', booking_id: booking.id })
-      .eq('salon_id', salonId)
-      .eq('date', bookingData.date)
-      .eq('time_slot', timeToSearch)
+      .eq('id', slot.id)
       .eq('status', 'available')
-      .select('id, status, booking_id')
-      .maybeSingle();
+      .select()
+      .single();
 
     if (slotUpdateError) {
       console.error('❌ Erro ao atualizar slot:', slotUpdateError);
+      // Rollback the booking
+      await supabase.from('bookings').delete().eq('id', booking.id);
+      await supabase.from('booking_services').delete().eq('booking_id', booking.id);
       return { data: null, error: { message: 'Falha ao bloquear horário' } };
     }
 
     if (!updatedSlot) {
       console.warn('⚠️ Nenhum slot foi atualizado (provavelmente já indisponível)');
+      // Rollback the booking
+      await supabase.from('bookings').delete().eq('id', booking.id);
+      await supabase.from('booking_services').delete().eq('booking_id', booking.id);
       return { data: null, error: { code: 'SLOT_UNAVAILABLE', message: 'Horário não disponível' } };
     }
 
