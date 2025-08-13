@@ -65,9 +65,11 @@ const ScheduleManager = ({ salon }: ScheduleManagerProps) => {
 
   // Carregar configuração padrão salva
   const loadDefaultSchedule = async () => {
+    if (!salon) return;
+    
     try {
       console.log('=== CARREGANDO CONFIGURAÇÃO PADRÃO ===');
-      const { data: schedule, error } = await getDefaultSchedule();
+      const { data: schedule, error } = await getDefaultSchedule(salon.id);
       
       if (error) {
         console.error('Erro ao carregar configuração:', error);
@@ -75,7 +77,9 @@ const ScheduleManager = ({ salon }: ScheduleManagerProps) => {
       }
       
       console.log('Configuração carregada:', schedule);
-      setDefaultSchedule(schedule);
+      if (schedule) {
+        setDefaultSchedule(schedule);
+      }
     } catch (error) {
       console.error('Error loading default schedule:', error);
     }

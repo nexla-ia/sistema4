@@ -118,7 +118,6 @@ export interface DefaultSchedule {
 }
 
 // Constants
-const SALON_ID = '4f59cc12-91c1-44fc-b158-697b9056e0cb';
 
 // Services
 export const getServices = async () => {
@@ -246,7 +245,7 @@ export const createBooking = async (bookingData: {
   time: string;
   services: string[];
   notes?: string;
-}) => {
+}, salonId: string) => {
   console.log('📅 Iniciando criação de agendamento:', bookingData);
   
   try {
@@ -257,7 +256,7 @@ export const createBooking = async (bookingData: {
       : bookingData.time;
     
     console.log('🔍 Buscando slot com parâmetros:');
-    console.log('- salon_id:', SALON_ID);
+    console.log('- salon_id:', salonId);
     console.log('- date:', bookingData.date);
     console.log('- time original:', bookingData.time);
     console.log('- time formatado:', formattedTime);
@@ -265,7 +264,7 @@ export const createBooking = async (bookingData: {
     const { data: slot, error: slotError } = await supabase
       .from('slots')
       .select('*')
-      .eq('salon_id', SALON_ID)
+      .eq('salon_id', salonId)
       .eq('date', bookingData.date)
       .eq('time_slot', formattedTime)
       .eq('status', 'available')
@@ -284,7 +283,7 @@ export const createBooking = async (bookingData: {
     
     if (!slot) {
       console.error('❌ Slot não encontrado para:', {
-        salon_id: SALON_ID,
+        salon_id: salonId,
         date: bookingData.date,
         time: bookingData.time,
         status: 'available'
@@ -325,7 +324,7 @@ export const createBooking = async (bookingData: {
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
       .insert([{
-        salon_id: SALON_ID,
+        salon_id: salonId,
         customer_id: customer.id,
         booking_date: bookingData.date,
         booking_time: bookingData.time,
@@ -383,7 +382,7 @@ export const createBooking = async (bookingData: {
   }
 };
 
-export const getBookings = async (date?: string) => {
+export const getBookings = async (salonId: string, date?: string) => {
   console.log('📅 Buscando agendamentos para:', date || 'todas as datas');
   
   let query = supabase
@@ -396,7 +395,7 @@ export const getBookings = async (date?: string) => {
         service:services(*)
       )
     `)
-    .eq('salon_id', SALON_ID)
+    .eq('salon_id', salonId)
     .order('booking_date', { ascending: true })
     .order('booking_time', { ascending: true });
   
@@ -515,11 +514,11 @@ export const getAllSlots = async (date: string) => {
   return { data: data || [], error };
 };
 
-export const saveBlockedSlots = async (date: string, timeSlots: string[], reason: string) => {
+export const saveBlockedSlots = async (date: string, timeSlots: string[], reason: string, salonId: string) => {
   console.log('🚫 Bloqueando slots:', { date, timeSlots, reason });
   
   const updates = timeSlots.map(time => ({
-    salon_id: SALON_ID,
+    salon_id: salonId,
     date,
     time_slot: time,
     status: 'blocked' as const,
@@ -543,13 +542,13 @@ export const saveBlockedSlots = async (date: string, timeSlots: string[], reason
 };
 
 // Working Hours
-export const getDefaultSchedule = async (): Promise<{ data: DefaultSchedule | null; error: any }> => {
+export const getDefaultSchedule = async (salonId: string): Promise<{ data: DefaultSchedule | null; error: any }> => {
   console.log('⚙️ Buscando configuração padrão de horários...');
   
   const { data, error } = await supabase
     .from('working_hours')
     .select('*')
-    .eq('salon_id', '4f59cc12-91c1-44fc-b158-697b9056e0cb')
+    .eq('salon_id', salonId)
     .eq('day_of_week', 1) // Segunda-feira como referência
     .maybeSingle();
   
@@ -799,13 +798,13 @@ export const getReviews = async () => {
   return { data: data || [], error };
 };
 
-export const getAllReviews = async () => {
+export const getAllReviews = async (salonId: string) => {
   console.log('⭐ Buscando todas as avaliações (admin)...');
   
   const { data, error } = await supabase
     .from('reviews')
     .select('*')
-    .eq('salon_id', SALON_ID)
+    .eq('salon_id', salonId)
     .order('created_at', { ascending: false });
   
   if (error) {

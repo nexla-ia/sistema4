@@ -169,6 +169,7 @@ const BookingForm = ({ selectedServices, onBack, salon }: BookingFormProps) => {
       };
 
       const { data, error } = await createBooking(bookingData);
+      const { data, error } = await createBooking(bookingData, salon!.id);
 
       if (error) {
         console.error('Error creating booking:', error);

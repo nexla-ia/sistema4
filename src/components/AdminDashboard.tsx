@@ -75,8 +75,8 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
     try {
       const [servicesResult, bookingsResult, reviewsResult] = await Promise.all([
         getServices(),
-        getBookings(),
-        getAllReviews()
+        getBookings(salon.id),
+        getAllReviews(salon.id)
       ]);
 
       if (servicesResult.data) {
