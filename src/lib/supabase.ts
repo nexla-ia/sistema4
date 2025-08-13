@@ -210,7 +210,7 @@ export const findOrCreateCustomer = async (customerData: { name: string; phone: 
     .from('customers')
     .select('*')
     .eq('phone', customerData.phone)
-    .single();
+    .maybeSingle();
   
   if (searchError && searchError.code !== 'PGRST116') {
     console.error('Erro ao buscar cliente:', searchError);
@@ -804,6 +804,12 @@ export const updateSalonOpeningHours = async (salonId: string, openingHours: any
 // Reviews
 export const getReviews = async () => {
   console.log('⭐ Buscando avaliações aprovadas...');
+  
+  // Check if Supabase is properly configured
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('❌ Supabase configuration missing');
+    return { data: [], error: new Error('Supabase configuration missing') };
+  }
   
   // First, get the first active salon since we don't have a specific salon context
   const { data: salon, error: salonError } = await supabase
