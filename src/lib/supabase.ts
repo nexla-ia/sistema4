@@ -498,8 +498,71 @@ export const createBooking = async (bookingData: {
     console.log('✅ Todos os slots necessários encontrados:', requiredSlots.map(s => s.time_slot));
     console.log('Atualizando', requiredSlots.length, 'slots para booking:', booking.id);
     
-    // Atualizar TODOS os slots necessários
-    const slotIds = requiredSlots.map(s => s.id);
+    // 8. Buscar a configuração do salão para saber a duração real dos slots
+    const { data: salonConfig, error: configError } = await getDefaultSchedule(salonId);
+    
+    if (configError || !salonConfig) {
+      console.error('❌ Erro ao buscar configuração do salão:', configError);
+      // Rollback do booking
+      await supabase.from('bookings').delete().eq('id', booking.id);
+      await supabase.from('booking_services').delete().eq('booking_id', booking.id);
+      return { data: null, error: { message: 'Erro ao buscar configuração do salão' } };
+    }
+    
+    const slotDurationMinutes = salonConfig.slot_duration || 30;
+    console.log('📊 Duração real dos slots:', slotDurationMinutes, 'minutos');
+    
+    // Recalcular slots necessários com a duração real
+    const actualSlotsNeeded = Math.ceil(totalDuration / slotDurationMinutes);
+    console.log('📊 Slots necessários (recalculado):', actualSlotsNeeded, 'para', totalDuration, 'minutos');
+    
+    // 9. Buscar todos os slots consecutivos necessários com a duração real
+    const requiredSlotTimes = [];
+    const [startHour, startMinute] = bookingData.time.split(':').map(Number);
+    
+    for (let i = 0; i < actualSlotsNeeded; i++) {
+      const slotMinutes = startHour * 60 + startMinute + (i * slotDurationMinutes);
+      const slotHour = Math.floor(slotMinutes / 60);
+      const slotMin = slotMinutes % 60;
+      const timeSlot = `${slotHour.toString().padStart(2, '0')}:${slotMin.toString().padStart(2, '0')}`;
+      requiredSlotTimes.push(timeSlot);
+    }
+    
+    console.log('🕐 Horários dos slots necessários:', requiredSlotTimes);
+    
+    // Buscar todos os slots necessários no banco
+    const actualRequiredSlots = [];
+    for (const timeSlot of requiredSlotTimes) {
+      const { data: slotData, error: slotError } = await supabase
+        .from('slots')
+        .select('*')
+        .eq('salon_id', salonId)
+        .eq('date', bookingData.date)
+        .eq('time_slot', formatTimeWithSeconds(timeSlot))
+        .eq('status', 'available')
+        .maybeSingle();
+      
+      if (slotError || !slotData) {
+        console.error(`❌ Slot ${timeSlot} não disponível:`, slotError);
+        // Rollback do booking
+        await supabase.from('bookings').delete().eq('id', booking.id);
+        await supabase.from('booking_services').delete().eq('booking_id', booking.id);
+        return { 
+          data: null, 
+          error: { 
+            message: `Horário ${timeSlot} não está disponível. Alguns slots podem ter sido ocupados por outro cliente.`, 
+            code: 'SLOT_UNAVAILABLE' 
+          } 
+        };
+      }
+      
+      actualRequiredSlots.push(slotData);
+    }
+    
+    console.log('✅ Todos os slots necessários encontrados:', actualRequiredSlots.map(s => s.time_slot));
+    
+    // 10. Atualizar TODOS os slots necessários
+    const slotIds = actualRequiredSlots.map(s => s.id);
     console.log('IDs dos slots a serem atualizados:', slotIds);
     
     const { error: slotUpdateError } = await supabase
@@ -518,14 +581,18 @@ export const createBooking = async (bookingData: {
       return { data: null, error: { message: 'Falha ao bloquear horário' } };
     }
 
-    // Verificar se TODOS os slots foram realmente atualizados
+    // 11. Verificar se TODOS os slots foram realmente atualizados
     const { data: verifySlots, error: verifyError } = await supabase
       .from('slots')
       .select('*')
       .in('id', slotIds);
     
-    if (verifyError || !verifySlots || verifySlots.length !== requiredSlots.length) {
-      console.error('❌ Nem todos os slots foram atualizados:', { verifyError, verifySlots });
+    if (verifyError || !verifySlots || verifySlots.length !== actualRequiredSlots.length) {
+      console.error('❌ Nem todos os slots foram atualizados:', { 
+        verifyError, 
+        expected: actualRequiredSlots.length, 
+        actual: verifySlots?.length 
+      });
       // Rollback the booking
       await supabase.from('bookings').delete().eq('id', booking.id);
       await supabase.from('booking_services').delete().eq('booking_id', booking.id);
