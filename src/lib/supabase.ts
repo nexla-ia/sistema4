@@ -447,15 +447,14 @@ export const createBooking = async (bookingData: {
     // 8. Atualizar o slot para 'booked'
     console.log('🔄 Atualizando slot para booked...');
     
-    // Calcular slots necessários para este agendamento
-    const totalDuration = services.reduce((sum, service) => sum + service.duration_minutes, 0);
+    // Calcular slots necessários para este agendamento (reutilizando totalDuration já calculado)
     const slotsNeeded = Math.ceil(totalDuration / 30); // 30 minutos por slot
     
     console.log('📊 Calculando slots necessários:', {
       totalDuration,
       slotsNeeded,
-      startTime: selectedTime,
-      date: selectedDate
+      startTime: bookingData.time,
+      date: bookingData.date
     });
     
     // Buscar todos os slots consecutivos necessários
