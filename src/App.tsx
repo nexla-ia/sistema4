@@ -477,6 +477,74 @@ function App() {
                 </div>
               </div>
 
+              {/* Team Section */}
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl md:rounded-3xl p-6 md:p-10 shadow-2xl border border-white/20 mb-8 md:mb-12 relative z-10">
+                <div className="text-center mb-8 md:mb-12">
+                  <div className="flex items-center justify-center mb-4 md:mb-6">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-clinic-400 to-clinic-500 rounded-xl md:rounded-2xl flex items-center justify-center mr-3 md:mr-4">
+                      <span className="text-white text-lg md:text-2xl">👥</span>
+                    </div>
+                    <h3 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900">Nossa Equipe</h3>
+                  </div>
+                  <p className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto">
+                    Conheça os profissionais dedicados que cuidam do seu bem-estar com expertise e carinho
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                  {/* André Silva */}
+                  <div className="bg-gradient-to-br from-white to-clinic-50 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-500 hover:scale-105 border border-clinic-100">
+                    <div className="text-center mb-4">
+                      <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-clinic-400 to-clinic-500 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
+                        {/* Placeholder for photo - will be replaced with actual image */}
+                        <span className="text-white text-2xl md:text-3xl font-bold">AS</span>
+                      </div>
+                      <h4 className="text-lg md:text-xl font-bold text-gray-900 mb-1">André Silva</h4>
+                      <p className="text-sm text-clinic-600 font-medium">Terapeuta Holístico</p>
+                    </div>
+                    <p className="text-gray-600 text-sm md:text-base leading-relaxed text-center">
+                      Com um olhar atento e sensível, busca sempre compreender o que vai além das palavras. 
+                      Sua presença transmite calma, acolhimento e confiança, conduzindo cada pessoa a se 
+                      reconectar com sua própria essência e encontrar novos caminhos para o equilíbrio e bem-estar.
+                    </p>
+                  </div>
+
+                  {/* Rafael Falco */}
+                  <div className="bg-gradient-to-br from-white to-clinic-50 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-500 hover:scale-105 border border-clinic-100">
+                    <div className="text-center mb-4">
+                      <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-clinic-400 to-clinic-500 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
+                        {/* Placeholder for photo - will be replaced with actual image */}
+                        <span className="text-white text-2xl md:text-3xl font-bold">RF</span>
+                      </div>
+                      <h4 className="text-lg md:text-xl font-bold text-gray-900 mb-1">Rafael Falco</h4>
+                      <p className="text-sm text-clinic-600 font-medium">Massoterapeuta</p>
+                    </div>
+                    <p className="text-gray-600 text-sm md:text-base leading-relaxed text-center">
+                      De forma precisa e dedicada, combina firmeza e delicadeza para trazer alívio e leveza. 
+                      Seu cuidado é pautado na atenção aos detalhes e na verdadeira escuta, criando um espaço 
+                      onde corpo e mente encontram harmonia.
+                    </p>
+                  </div>
+
+                  {/* Lu Gonçalves */}
+                  <div className="bg-gradient-to-br from-white to-clinic-50 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-500 hover:scale-105 border border-clinic-100 md:col-span-2 lg:col-span-1">
+                    <div className="text-center mb-4">
+                      <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-clinic-400 to-clinic-500 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
+                        {/* Placeholder for photo - will be replaced with actual image */}
+                        <span className="text-white text-2xl md:text-3xl font-bold">LG</span>
+                      </div>
+                      <h4 className="text-lg md:text-xl font-bold text-gray-900 mb-1">Lu Gonçalves</h4>
+                      <p className="text-sm text-clinic-600 font-medium">Terapeuta Energética</p>
+                    </div>
+                    <p className="text-gray-600 text-sm md:text-base leading-relaxed text-center">
+                      Com energia leve e transformadora, conduz processos que despertam clareza e abrem novas 
+                      possibilidades. Seu toque sutil inspira confiança e ajuda cada pessoa a liberar bloqueios 
+                      internos, permitindo que a vida flua de forma mais leve e consciente.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {/* Localização */}
               {salon?.address && (
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl md:rounded-3xl p-6 md:p-10 shadow-2xl border border-white/20 relative z-10">
