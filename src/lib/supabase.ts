@@ -466,6 +466,7 @@ export const createBooking = async (bookingData: {
     // 9. Buscar todos os slots consecutivos necessários com a duração real
     const requiredSlotTimes = [];
     const [startHour, startMinute] = bookingData.time.split(':').map(Number);
+    const [startHour, startMinute] = bookingData.time.split(':').map(Number);
     
     for (let i = 0; i < actualSlotsNeeded; i++) {
       const slotMinutes = startHour * 60 + startMinute + (i * slotDurationMinutes);
