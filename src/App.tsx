@@ -279,7 +279,7 @@ function App() {
   };
 
   const getTotalPrice = () => {
-    return selectedServices.reduce((total, service) => total + service.price, 0);
+    return parseFloat(selectedServices.reduce((total, service) => total + service.price, 0).toFixed(2));
   };
 
   const getTotalDuration = () => {
