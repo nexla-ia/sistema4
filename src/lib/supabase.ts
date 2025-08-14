@@ -446,6 +446,57 @@ export const createBooking = async (bookingData: {
     
     // 8. Atualizar o slot para 'booked'
     console.log('🔄 Atualizando slot para booked...');
+    
+    // Calcular slots necessários para este agendamento
+    const totalDuration = services.reduce((sum, service) => sum + service.duration_minutes, 0);
+    const slotsNeeded = Math.ceil(totalDuration / 30); // 30 minutos por slot
+    
+    console.log('📊 Calculando slots necessários:', {
+      totalDuration,
+      slotsNeeded,
+      startTime: selectedTime,
+      date: selectedDate
+    });
+    
+    // Buscar todos os slots consecutivos necessários
+    const requiredSlots = [];
+    const startHour = parseInt(selectedTime.split(':')[0]);
+    const startMinute = parseInt(selectedTime.split(':')[1]);
+    
+    for (let i = 0; i < slotsNeeded; i++) {
+      const slotMinutes = startHour * 60 + startMinute + (i * 30);
+      const slotHour = Math.floor(slotMinutes / 60);
+      const slotMin = slotMinutes % 60;
+      const timeSlot = `${slotHour.toString().padStart(2, '0')}:${slotMin.toString().padStart(2, '0')}`;
+      
+      // Buscar o slot no banco
+      const { data: slotData, error: slotError } = await supabase
+        .from('slots')
+        .select('*')
+        .eq('salon_id', salonId)
+        .eq('date', selectedDate)
+        .eq('time_slot', formatTimeWithSeconds(timeSlot))
+        .eq('status', 'available')
+        .maybeSingle();
+      
+      if (slotError || !slotData) {
+        console.error(`❌ Slot ${timeSlot} não disponível:`, slotError);
+        // Rollback do booking
+        await supabase.from('bookings').delete().eq('id', booking.id);
+        await supabase.from('booking_services').delete().eq('booking_id', booking.id);
+        return { 
+          data: null, 
+          error: { 
+            message: `Horário ${timeSlot} não está disponível. Alguns slots podem ter sido ocupados por outro cliente.`, 
+            code: 'SLOT_UNAVAILABLE' 
+          } 
+        };
+      }
+      
+      requiredSlots.push(slotData);
+    }
+    
+    console.log('✅ Todos os slots necessários encontrados:', requiredSlots.map(s => s.time_slot));
     console.log('Atualizando', requiredSlots.length, 'slots para booking:', booking.id);
     
     // Atualizar TODOS os slots necessários
