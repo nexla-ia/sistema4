@@ -463,14 +463,14 @@ export const createBooking = async (bookingData: {
     const actualSlotsNeeded = Math.ceil(totalDuration / slotDurationMinutes);
     console.log('📊 Slots necessários (recalculado):', actualSlotsNeeded, 'para', totalDuration, 'minutos');
     
-    // 9. Buscar todos os slots consecutivos necessários com a duração real
+    // 9. Calcular horários dos slots consecutivos usando a duração real
     const requiredSlotTimes = [];
     const [startHour, startMinute] = bookingData.time.split(':').map(Number);
     
     for (let i = 0; i < actualSlotsNeeded; i++) {
-      const slotMinutes = startHour * 60 + startMinute + (i * slotDurationMinutes);
-      const slotHour = Math.floor(slotMinutes / 60);
-      const slotMin = slotMinutes % 60;
+      const totalMinutesFromStart = startHour * 60 + startMinute + (i * slotDurationMinutes);
+      const slotHour = Math.floor(totalMinutesFromStart / 60);
+      const slotMin = totalMinutesFromStart % 60;
       const timeSlot = `${slotHour.toString().padStart(2, '0')}:${slotMin.toString().padStart(2, '0')}`;
       requiredSlotTimes.push(timeSlot);
     }
