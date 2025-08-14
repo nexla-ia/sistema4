@@ -550,7 +550,7 @@ function App() {
                     <div className="text-center mb-4">
                       <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-clinic-400 to-clinic-500 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
                         <img 
-                          src="/André Silva Terapeuta.png" 
+                          src="/andre-silva-terapeuta.png" 
                           alt="André Silva - Terapeuta Holístico" 
                           className="w-full h-full object-cover"
                         />
