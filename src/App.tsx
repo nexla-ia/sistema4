@@ -549,8 +549,11 @@ function App() {
                   <div className="bg-gradient-to-br from-white to-clinic-50 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-500 hover:scale-105 border border-clinic-100">
                     <div className="text-center mb-4">
                       <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-clinic-400 to-clinic-500 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
-                        {/* Placeholder for photo - will be replaced with actual image */}
-                        <span className="text-white text-2xl md:text-3xl font-bold">AS</span>
+                        <img 
+                          src="/André Silva Terapeuta.png" 
+                          alt="André Silva - Terapeuta Holístico" 
+                          className="w-full h-full object-cover"
+                        />
                       </div>
                       <h4 className="text-lg md:text-xl font-bold text-gray-900 mb-1">André Silva</h4>
                       <p className="text-sm text-clinic-600 font-medium">Terapeuta Holístico</p>
@@ -566,8 +569,11 @@ function App() {
                   <div className="bg-gradient-to-br from-white to-clinic-50 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-500 hover:scale-105 border border-clinic-100">
                     <div className="text-center mb-4">
                       <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-clinic-400 to-clinic-500 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
-                        {/* Placeholder for photo - will be replaced with actual image */}
-                        <span className="text-white text-2xl md:text-3xl font-bold">RF</span>
+                        <img 
+                          src="/rafael.png" 
+                          alt="Rafael Falco - Massoterapeuta" 
+                          className="w-full h-full object-cover"
+                        />
                       </div>
                       <h4 className="text-lg md:text-xl font-bold text-gray-900 mb-1">Rafael Falco</h4>
                       <p className="text-sm text-clinic-600 font-medium">Massoterapeuta</p>
@@ -583,8 +589,11 @@ function App() {
                   <div className="bg-gradient-to-br from-white to-clinic-50 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-500 hover:scale-105 border border-clinic-100 md:col-span-2 lg:col-span-1">
                     <div className="text-center mb-4">
                       <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-clinic-400 to-clinic-500 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
-                        {/* Placeholder for photo - will be replaced with actual image */}
-                        <span className="text-white text-2xl md:text-3xl font-bold">LG</span>
+                        <img 
+                          src="/luciana.png" 
+                          alt="Lu Gonçalves - Terapeuta Energética" 
+                          className="w-full h-full object-cover"
+                        />
                       </div>
                       <h4 className="text-lg md:text-xl font-bold text-gray-900 mb-1">Lu Gonçalves</h4>
                       <p className="text-sm text-clinic-600 font-medium">Terapeuta Energética</p>
