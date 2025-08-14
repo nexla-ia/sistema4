@@ -13,7 +13,7 @@ const Footer = ({ salon }: FooterProps) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
           {/* Salon Info */}
           <div>
-            <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4">{salon?.name || 'Seu Salão'}</h3>
+            <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4">{salon?.name || 'Sua Clínica'}</h3>
             <p className="text-gray-300 mb-3 md:mb-4 text-sm md:text-base">
               {salon?.description || 'Seu bem-estar, nosso cuidado! Cuidando da sua saúde mental e física com carinho e profissionalismo.'}
             </p>
@@ -104,7 +104,7 @@ const Footer = ({ salon }: FooterProps) => {
         <div className="border-t border-gray-800 mt-8 md:mt-12 pt-6 md:pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-400 text-xs md:text-sm text-center md:text-left">
-              © 2024 {salon?.name || 'Seu Salão'}. Todos os direitos reservados.
+              © 2024 {salon?.name || 'Sua Clínica'}. Todos os direitos reservados.
             </p>
             <div className="text-gray-500 text-xs mt-2 md:mt-0 text-center md:text-right">
               <p>Sistema desenvolvido pela{' '}

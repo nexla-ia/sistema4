@@ -262,7 +262,7 @@ const BookingForm = ({ selectedServices, onBack, salon }: BookingFormProps) => {
               
               {salon && (
                 <div className="bg-blue-50 rounded-xl p-4 mb-8">
-                  <h4 className="font-semibold text-blue-900 mb-2">Informações do Salão:</h4>
+                  <h4 className="font-semibold text-blue-900 mb-2">Informações da Clínica:</h4>
                   <p className="text-blue-800"><strong>{salon.name}</strong></p>
                   {salon.address && <p className="text-blue-700">{salon.address}</p>}
                   {salon.phone && <p className="text-blue-700">📱 {salon.phone}</p>}
@@ -598,7 +598,7 @@ const BookingForm = ({ selectedServices, onBack, salon }: BookingFormProps) => {
                           onChange={(e) => handleCustomerDataChange('observations', e.target.value)}
                           rows={3}
                           className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-                          placeholder="Ex: quero francesinha, sou nova cliente, etc."
+                          placeholder="Ex: primeira vez no centro, dores nas costas, preferência por massagem mais suave, etc."
                         />
                       </div>
                     </div>

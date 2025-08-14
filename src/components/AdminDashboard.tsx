@@ -376,11 +376,11 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Nenhum salão configurado</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Nenhuma clínica configurada</h2>
           <p className="text-gray-600 mb-4">
-            Não foi possível encontrar um salão vinculado à sua conta.
+            Não foi possível encontrar uma clínica vinculada à sua conta.
             <br />
-            Verifique se o salão foi criado corretamente no banco de dados.
+            Verifique se a clínica foi criada corretamente no banco de dados.
           </p>
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 text-left max-w-md mx-auto">
             <h3 className="font-semibold text-yellow-800 mb-2">Para resolver:</h3>

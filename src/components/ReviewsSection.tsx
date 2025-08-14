@@ -12,6 +12,7 @@ const ReviewsSection = ({ salon }: ReviewsSectionProps) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [formData, setFormData] = useState({
@@ -278,38 +279,69 @@ const ReviewsSection = ({ salon }: ReviewsSectionProps) => {
 
         {/* Reviews List */}
         {reviews.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-            {reviews.map(review => (
-              <div
-                key={review.id}
-                className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:scale-105"
-              >
-                <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 bg-clinic-100 rounded-full flex items-center justify-center mr-4">
-                    <User className="w-6 h-6 text-clinic-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900">{review.customer_name}</h4>
-                    <div className="flex items-center mt-1">
-                      {renderStars(review.rating)}
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+              {(showAllReviews ? reviews : reviews.slice(0, 6)).map((review, index) => (
+                <div
+                  key={review.id}
+                  className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 animate-fade-in-up"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <div className="flex items-center mb-4">
+                    <div className="w-12 h-12 bg-clinic-100 rounded-full flex items-center justify-center mr-4">
+                      <User className="w-6 h-6 text-clinic-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">{review.customer_name}</h4>
+                      <div className="flex items-center mt-1">
+                        {renderStars(review.rating)}
+                      </div>
                     </div>
                   </div>
+                  
+                  <p className="text-gray-600 mb-4 leading-relaxed">
+                    "{review.comment}"
+                  </p>
+                  
+                  <p className="text-xs text-gray-400">
+                    {new Date(review.created_at).toLocaleDateString('pt-BR', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </p>
                 </div>
-                
-                <p className="text-gray-600 mb-4 leading-relaxed">
-                  "{review.comment}"
-                </p>
-                
-                <p className="text-xs text-gray-400">
-                  {new Date(review.created_at).toLocaleDateString('pt-BR', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </p>
+              ))}
+            </div>
+            
+            {/* Show More/Less Button */}
+            {reviews.length > 6 && (
+              <div
+                className="text-center mt-8 md:mt-12"
+              >
+                <button
+                  onClick={() => setShowAllReviews(!showAllReviews)}
+                  className="bg-gradient-to-r from-clinic-500 to-clinic-600 text-white px-8 py-3 rounded-full font-semibold hover:from-clinic-600 hover:to-clinic-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center mx-auto"
+                >
+                  {showAllReviews ? (
+                    <>
+                      <span>Ver Menos Avaliações</span>
+                      <svg className="w-5 h-5 ml-2 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </>
+                  ) : (
+                    <>
+                      <span>Ver Todas as {reviews.length} Avaliações</span>
+                      <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </>
+                  )}
+                </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         ) : (
           <div className="text-center py-12">
             <Star className="w-16 h-16 text-gray-300 mx-auto mb-4" />
