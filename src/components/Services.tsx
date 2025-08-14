@@ -1,3 +1,4 @@
+import React from 'react';
 import React, { useState } from 'react';
 import { Clock, DollarSign, Sparkles } from 'lucide-react';
 
