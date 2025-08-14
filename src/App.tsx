@@ -12,6 +12,59 @@ import { Calendar, ShoppingCart, X, User } from 'lucide-react';
 import { getServices, getCurrentUser, getSalonByUserId, supabase } from './lib/supabase';
 import type { Service, Salon } from './lib/supabase';
 
+// Team Member Card Component
+interface TeamMemberCardProps {
+  name: string;
+  role: string;
+  initials: string;
+  description: string;
+}
+
+const TeamMemberCard: React.FC<TeamMemberCardProps> = ({ name, role, initials, description }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  // Truncate description to approximately 80 characters
+  const truncatedDescription = description.length > 80 
+    ? description.substring(0, 80) + '...' 
+    : description;
+
+  return (
+    <div className="bg-gradient-to-br from-white to-clinic-50 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-500 hover:scale-105 border border-clinic-100">
+      <div className="text-center mb-4">
+        <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-clinic-400 to-clinic-500 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
+          {/* Placeholder for photo - will be replaced with actual image */}
+          <span className="text-white text-2xl md:text-3xl font-bold">{initials}</span>
+        </div>
+        <h4 className="text-lg md:text-xl font-bold text-gray-900 mb-1">{name}</h4>
+        <p className="text-sm text-clinic-600 font-medium">{role}</p>
+      </div>
+      
+      <div className="text-gray-600 text-sm md:text-base leading-relaxed text-center">
+        <p className="mb-3">
+          {isExpanded ? description : truncatedDescription}
+        </p>
+        
+        {description.length > 80 && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-clinic-600 hover:text-clinic-700 font-medium text-sm transition-colors duration-300 flex items-center mx-auto space-x-1"
+          >
+            <span>{isExpanded ? 'Ver menos' : 'Ver mais'}</span>
+            <svg 
+              className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
 function App() {
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [showBookingForm, setShowBookingForm] = useState(false);
