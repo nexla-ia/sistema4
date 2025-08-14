@@ -446,15 +446,24 @@ export const createBooking = async (bookingData: {
     
     // 8. Atualizar o slot para 'booked'
     console.log('🔄 Atualizando slot para booked...');
-    console.log('Atualizando slot:', slot.id, 'para booking:', booking.id);
+    console.log('Atualizando slot ID:', slot.id, 'para booking:', booking.id);
+    console.log('Dados do slot encontrado:', {
+      id: slot.id,
+      salon_id: slot.salon_id,
+      date: slot.date,
+      time_slot: slot.time_slot,
+      status: slot.status
+    });
     
-    const { data: updatedSlot, error: slotUpdateError } = await supabase
+    // Usar uma abordagem mais direta para atualizar o slot
+    const { error: slotUpdateError } = await supabase
       .from('slots')
-      .update({ status: 'booked', booking_id: booking.id })
+      .update({ 
+        status: 'booked', 
+        booking_id: booking.id 
+      })
       .eq('id', slot.id)
-      .eq('status', 'available')
-      .select()
-      .single();
+      .eq('status', 'available');
 
     if (slotUpdateError) {
       console.error('❌ Erro ao atualizar slot:', slotUpdateError);
@@ -464,15 +473,22 @@ export const createBooking = async (bookingData: {
       return { data: null, error: { message: 'Falha ao bloquear horário' } };
     }
 
-    if (!updatedSlot) {
-      console.warn('⚠️ Nenhum slot foi atualizado (provavelmente já indisponível)');
+    // Verificar se o slot foi realmente atualizado
+    const { data: verifySlot, error: verifyError } = await supabase
+      .from('slots')
+      .select('*')
+      .eq('id', slot.id)
+      .single();
+    
+    if (verifyError || !verifySlot || verifySlot.status !== 'booked') {
+      console.error('❌ Slot não foi atualizado corretamente:', { verifyError, verifySlot });
       // Rollback the booking
       await supabase.from('bookings').delete().eq('id', booking.id);
       await supabase.from('booking_services').delete().eq('booking_id', booking.id);
-      return { data: null, error: { code: 'SLOT_UNAVAILABLE', message: 'Horário não disponível' } };
+      return { data: null, error: { code: 'SLOT_UPDATE_FAILED', message: 'Falha ao atualizar status do horário' } };
     }
 
-    console.log('✅ Slot atualizado:', updatedSlot);
+    console.log('✅ Slot atualizado com sucesso:', verifySlot);
 
     console.log('✅ Agendamento criado com sucesso:', booking);
     return { data: booking, error: null };
