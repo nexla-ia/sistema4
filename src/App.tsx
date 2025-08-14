@@ -490,8 +490,8 @@ function App() {
                       
                       <div className="relative group overflow-hidden rounded-xl md:rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500">
                         <img 
-                          src="/foto2.jpg" 
-                          alt="Centro Terapêutico Bem-Estar - Área de atendimento" 
+                          src="/20250814_130359.jpg" 
+                          alt="Centro Terapêutico Bem-Estar - Espaço Terapêutico" 
                           className="w-full h-24 md:h-32 lg:h-40 object-cover group-hover:scale-110 transition-transform duration-500"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -504,8 +504,8 @@ function App() {
                     <div className="grid grid-cols-2 gap-3 md:gap-4">
                       <div className="relative group overflow-hidden rounded-xl md:rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500">
                         <img 
-                          src="/foto3.jpg" 
-                          alt="Centro Terapêutico Bem-Estar - Área de relaxamento" 
+                          src="/sala4.jpg" 
+                          alt="Centro Terapêutico Bem-Estar - Sala de Terapia" 
                           className="w-full h-20 md:h-24 lg:h-32 object-cover group-hover:scale-110 transition-transform duration-500"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -516,8 +516,8 @@ function App() {
                       
                       <div className="relative group overflow-hidden rounded-xl md:rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500">
                         <img 
-                          src="/foto4.jpg" 
-                          alt="Centro Terapêutico Bem-Estar - Recepção" 
+                          src="/sala11.jpg" 
+                          alt="Centro Terapêutico Bem-Estar - Área de Acolhimento" 
                           className="w-full h-20 md:h-24 lg:h-32 object-cover group-hover:scale-110 transition-transform duration-500"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
