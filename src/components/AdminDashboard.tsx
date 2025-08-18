@@ -343,48 +343,6 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
   });
 };
 
-  const getRevenueData = () => {
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-    
-    // Filtrar agendamentos do mês atual que foram concluídos (excluir no_show)
-    const thisMonthBookings = bookings.filter(booking => {
-      const bookingDate = new Date(booking.booking_date);
-      return bookingDate.getMonth() === currentMonth && 
-             bookingDate.getFullYear() === currentYear &&
-             booking.status === 'completed'; // Apenas agendamentos concluídos contam para receita
-    });
-    
-    const thisMonthRevenue = thisMonthBookings.reduce((total, booking) => {
-      return total + parseFloat(booking.total_price.toString());
-    }, 0);
-    
-    // Filtrar agendamentos do mês passado que foram concluídos (excluir no_show)
-    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-    
-    const lastMonthBookings = bookings.filter(booking => {
-      const bookingDate = new Date(booking.booking_date);
-      return bookingDate.getMonth() === lastMonth && 
-             bookingDate.getFullYear() === lastMonthYear &&
-             booking.status === 'completed'; // Apenas agendamentos concluídos contam para receita
-    });
-    
-    const lastMonthRevenue = lastMonthBookings.reduce((total, booking) => {
-      return total + parseFloat(booking.total_price.toString());
-    }, 0);
-    
-    const growth = lastMonthRevenue > 0 
-      ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 
-      : 0;
-    
-    return {
-      thisMonth: thisMonthRevenue,
-      lastMonth: lastMonthRevenue,
-      growth: growth
-    };
-  };
 
   // Get unique customers from filtered bookings
   const getUniqueCustomers = (filteredBookings: Booking[]) => {
@@ -781,6 +739,15 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
                           type="checkbox"
                           checked={newService.popular}
                           onChange={(e) => setNewService(prev => ({ ...prev, popular: e.target.checked }))}
+                        <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+                          <div>✅ {stats.completedBookings} concluídos</div>
+                          {stats.noShowBookings > 0 && (
+                            <div>❌ {stats.noShowBookings} não compareceram</div>
+                          )}
+                          {stats.cancelledBookings > 0 && (
+                            <div>🚫 {stats.cancelledBookings} cancelados</div>
+                          )}
+                        </div>
                           className="rounded border-gray-300 text-clinic-600 focus:ring-clinic-500"
                         />
                         <span className="ml-2 text-sm text-gray-700">Serviço popular</span>
