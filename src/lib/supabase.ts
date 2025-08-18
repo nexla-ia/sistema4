@@ -491,8 +491,8 @@ export const getBookings = async (salonId: string, date?: string) => {
 export const updateBookingStatus = async (bookingId: string, status: Booking['status']) => {
   console.log('📝 Atualizando status do agendamento:', bookingId, 'para', status);
   
-  // Se o status for 'completed', precisamos liberar o slot
-  if (status === 'completed') {
+  // Se o status for 'completed' ou 'no_show', precisamos liberar o slot
+  if (status === 'completed' || status === 'no_show') {
     // Primeiro buscar o agendamento para pegar os dados do slot
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
@@ -506,7 +506,7 @@ export const updateBookingStatus = async (bookingId: string, status: Booking['st
       // Liberar o slot correspondente
       const formattedTime = formatTimeWithSeconds(booking.booking_time);
       
-      console.log('🔓 Liberando slot:', {
+      console.log(`🔓 Liberando slot (${status}):`, {
         salon_id: booking.salon_id,
         date: booking.booking_date,
         time: formattedTime
@@ -526,7 +526,7 @@ export const updateBookingStatus = async (bookingId: string, status: Booking['st
       if (slotError) {
         console.error('❌ Erro ao liberar slot:', slotError);
       } else {
-        console.log('✅ Slot liberado com sucesso');
+        console.log(`✅ Slot liberado com sucesso (${status})`);
       }
     }
   }
