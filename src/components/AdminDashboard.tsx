@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { useModal } from '../hooks/useModal';
-import { Calendar, Users, Settings, BarChart3, Clock, Plus, Edit, Trash2, Check, X, LogOut, Star, MessageCircle } from 'lucide-react';
+import { Calendar, Users, Settings, BarChart3, Clock, Plus, Edit, Trash2, Check, X, LogOut, Star, MessageCircle, UserX, AlertTriangle } from 'lucide-react';
 import { 
   getServices, 
   getBookings, 
@@ -58,6 +58,9 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [showAddService, setShowAddService] = useState(false);
   const [reportFilter, setReportFilter] = useState('total');
+  const [showNoShowModal, setShowNoShowModal] = useState(false);
+  const [selectedBookingForNoShow, setSelectedBookingForNoShow] = useState<string | null>(null);
+  const [noShowReason, setNoShowReason] = useState('');
   const [newService, setNewService] = useState({
     name: '',
     description: '',
@@ -186,7 +189,13 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
       if (error) throw error;
 
       if (data) {
-        setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status } : b));
+        // Se for "no_show", adicionar o motivo nas notas
+        if (status === 'no_show' && noShowReason) {
+          const updatedBooking = { ...data, notes: `${data.notes ? data.notes + ' | ' : ''}Não compareceu: ${noShowReason}` };
+          setBookings(prev => prev.map(b => b.id === bookingId ? updatedBooking : b));
+        } else {
+          setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status } : b));
+        }
         
         // Find the booking to get customer name
         const booking = bookings.find(b => b.id === bookingId);
@@ -207,6 +216,11 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
             'Agendamento Cancelado', 
             `O agendamento de ${customerName} foi cancelado.`
           );
+        } else if (status === 'no_show') {
+          showSuccess(
+            'Marcado como Não Compareceu', 
+            `O agendamento de ${customerName} foi marcado como "não compareceu"${noShowReason ? ` - Motivo: ${noShowReason}` : ''}.`
+          );
         } else {
           showSuccess('Status Atualizado!', 'Status do agendamento atualizado com sucesso!');
         }
@@ -215,6 +229,21 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
       console.error('Error updating booking status:', error);
       showError('Erro', 'Erro ao atualizar status do agendamento. Tente novamente.');
     }
+  };
+
+  const handleNoShowClick = (bookingId: string) => {
+    setSelectedBookingForNoShow(bookingId);
+    setNoShowReason('');
+    setShowNoShowModal(true);
+  };
+
+  const handleNoShowConfirm = async () => {
+    if (!selectedBookingForNoShow) return;
+    
+    await handleUpdateBookingStatus(selectedBookingForNoShow, 'no_show');
+    setShowNoShowModal(false);
+    setSelectedBookingForNoShow(null);
+    setNoShowReason('');
   };
 
   const handleLogout = async () => {
@@ -356,7 +385,7 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
       case 'completed': return 'bg-blue-100 text-blue-800';
-      case 'no_show': return 'bg-gray-100 text-gray-800';
+      case 'no_show': return 'bg-orange-100 text-orange-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -538,27 +567,46 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
                                   <button
                                     onClick={() => handleUpdateBookingStatus(booking.id, 'confirmed')}
                                     className="text-green-600 hover:text-green-900"
+                                    title="Confirmar"
                                   >
                                     <Check className="w-4 h-4" />
                                   </button>
                                   <button
                                     onClick={() => handleUpdateBookingStatus(booking.id, 'cancelled')}
                                     className="text-red-600 hover:text-red-900"
+                                    title="Cancelar"
                                   >
                                     <X className="w-4 h-4" />
                                   </button>
                                 </>
                               )}
                               {booking.status === 'confirmed' && (
-                                <button
-                                  onClick={() => handleUpdateBookingStatus(booking.id, 'completed')}
-                                  className="text-blue-600 hover:text-blue-900 text-xs px-2 py-1 bg-blue-100 rounded"
-                                >
-                                  Concluir
-                                </button>
+                                <>
+                                  <button
+                                    onClick={() => handleUpdateBookingStatus(booking.id, 'completed')}
+                                    className="text-blue-600 hover:text-blue-900 text-xs px-2 py-1 bg-blue-100 rounded"
+                                    title="Marcar como concluído"
+                                  >
+                                    Concluir
+                                  </button>
+                                  <button
+                                    onClick={() => handleNoShowClick(booking.id)}
+                                    className="text-orange-600 hover:text-orange-900 text-xs px-2 py-1 bg-orange-100 rounded flex items-center space-x-1"
+                                    title="Marcar como não compareceu"
+                                  >
+                                    <UserX className="w-3 h-3" />
+                                    <span>Não veio</span>
+                                  </button>
+                                </>
                               )}
                               {booking.status === 'completed' && (
                                 <span className="text-green-600 text-xs">Concluído</span>
+                              )}
+                              {booking.status === 'no_show' && (
+                                <span className="text-orange-600 text-xs flex items-center space-x-1">
+                                  <UserX className="w-3 h-3" />
+                                  <span>Não compareceu</span>
+                                </span>
                               )}
                             </div>
                           </td>
@@ -1046,6 +1094,75 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
       </div>
       
       {/* Modal Component */}
+      {/* Modal para "Não Compareceu" */}
+      {showNoShowModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                    <UserX className="w-6 h-6 text-orange-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">Cliente Não Compareceu</h3>
+                </div>
+                <button
+                  onClick={() => setShowNoShowModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <p className="text-gray-700 mb-4">
+                Marcar este agendamento como "não compareceu". Você pode adicionar um motivo opcional.
+              </p>
+              
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Motivo (opcional)
+                </label>
+                <textarea
+                  value={noShowReason}
+                  onChange={(e) => setNoShowReason(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="Ex: Não atendeu ligações, não respondeu mensagens, emergência familiar, etc."
+                />
+              </div>
+              
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+                <div className="flex items-start space-x-3">
+                  <AlertTriangle className="w-5 h-5 text-orange-600 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-semibold text-orange-800">Importante</h4>
+                    <p className="text-sm text-orange-700 mt-1">
+                      Esta ação irá liberar o horário para novos agendamentos e registrar que o cliente não compareceu.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowNoShowModal(false)}
+                  className="px-4 py-2 text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleNoShowConfirm}
+                  className="px-6 py-2 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors flex items-center space-x-2"
+                >
+                  <UserX className="w-4 h-4" />
+                  <span>Confirmar Não Compareceu</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <Modal
         isOpen={modal.isOpen}
         onClose={hideModal}
