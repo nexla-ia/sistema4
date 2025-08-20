@@ -739,6 +739,7 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
                           type="checkbox"
                           checked={newService.popular}
                           onChange={(e) => setNewService(prev => ({ ...prev, popular: e.target.checked }))}
+                        />
                         <div className="text-xs text-gray-500 mt-1 space-y-0.5">
                           <div>✅ {stats.completedBookings} concluídos</div>
                           {stats.noShowBookings > 0 && (
