@@ -430,22 +430,30 @@ export const createBooking = async (bookingData: {
     }
     
     // 8. Atualizar o slot para 'booked'
-    // 7. Atualizar o slot para 'booked'
     const { error: slotUpdateError } = await supabase
       .from('slots')
       .update({ 
         status: 'booked', 
         booking_id: booking.id 
       })
-      .eq('id', slot.id);
+      .eq('salon_id', salonId)
+      .eq('date', bookingData.date)
+      .eq('time_slot', slot.time_slot);
 
     if (slotUpdateError) {
       console.error('❌ Erro ao atualizar slot:', slotUpdateError);
       // Rollback the booking
       await supabase.from('bookings').delete().eq('id', booking.id);
       await supabase.from('booking_services').delete().eq('booking_id', booking.id);
-      return { data: null, error: { message: 'Falha ao bloquear horário' } };
+      return { data: null, error: { message: 'Falha ao bloquear horário. Tente novamente.' } };
     }
+
+    console.log('✅ Slot atualizado para booked:', {
+      salon_id: salonId,
+      date: bookingData.date,
+      time_slot: slot.time_slot,
+      booking_id: booking.id
+    });
 
     console.log('✅ Agendamento criado com sucesso:', booking);
     return { data: booking, error: null };
