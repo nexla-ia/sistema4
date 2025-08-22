@@ -301,71 +301,55 @@ export const createBooking = async (bookingData: {
       salonId: salonId
     });
     
-    // Try different time formats to find the slot
-    let slot = null;
-    let slotError = null;
-    
-    // First attempt: with seconds
-    const { data: slotAttempt1, error: error1 } = await supabase
+    // Buscar o slot disponível com diferentes formatos de tempo
+    const { data: availableSlot, error: slotSearchError } = await supabase
       .from('slots')
       .select('*')
       .eq('salon_id', salonId)
       .eq('date', bookingData.date)
-      .eq('time_slot', timeWithSeconds)
+      .or(`time_slot.eq.${timeWithSeconds},time_slot.eq.${originalTime}`)
       .eq('status', 'available')
       .maybeSingle();
     
-    if (!error1 && slotAttempt1) {
-      slot = slotAttempt1;
-      console.log('✅ Slot encontrado com formato HH:MM:SS');
-    } else {
-      // Second attempt: without seconds
-      const { data: slotAttempt2, error: error2 } = await supabase
+    if (slotSearchError) {
+      console.error('❌ Erro ao buscar slot:', slotSearchError);
+      return { data: null, error: slotSearchError };
+    }
+    
+    if (!availableSlot) {
+      console.log('❌ Slot não encontrado ou não disponível');
+      
+      // Verificar se o slot existe com outro status
+      const { data: existingSlot } = await supabase
         .from('slots')
         .select('*')
         .eq('salon_id', salonId)
         .eq('date', bookingData.date)
-        .eq('time_slot', originalTime)
-        .eq('status', 'available')
+        .or(`time_slot.eq.${timeWithSeconds},time_slot.eq.${originalTime}`)
         .maybeSingle();
       
-      if (!error2 && slotAttempt2) {
-        slot = slotAttempt2;
-        console.log('✅ Slot encontrado com formato HH:MM');
+      if (existingSlot) {
+        console.log('❌ Slot existe mas com status:', existingSlot.status);
+        return { 
+          data: null, 
+          error: { 
+            message: `Horário já está ${existingSlot.status === 'booked' ? 'ocupado' : 'bloqueado'}`, 
+            code: 'SLOT_UNAVAILABLE' 
+          } 
+        };
       } else {
-        slotError = error2 || error1;
-        console.log('❌ Slot não encontrado em nenhum formato');
-        
-        // Check if slot exists with different status
-        const { data: existingSlot } = await supabase
-          .from('slots')
-          .select('*')
-          .eq('salon_id', salonId)
-          .eq('date', bookingData.date)
-          .or(`time_slot.eq.${timeWithSeconds},time_slot.eq.${originalTime}`)
-          .maybeSingle();
-        
-        if (existingSlot) {
-          console.log('❌ Slot existe mas com status:', existingSlot.status);
-          return { 
-            data: null, 
-            error: { 
-              message: `Horário já está ${existingSlot.status === 'booked' ? 'ocupado' : 'bloqueado'}`, 
-              code: 'SLOT_UNAVAILABLE' 
-            } 
-          };
-        } else {
-          console.log('❌ Slot não existe no banco de dados');
-          return { 
-            data: null, 
-            error: { 
-              message: 'Horário não disponível. Verifique se os horários foram gerados corretamente no painel administrativo.', 
-              code: 'SLOT_NOT_FOUND' 
-            } 
-          };
-        }
+        console.log('❌ Slot não existe no banco de dados');
+        return { 
+          data: null, 
+          error: { 
+            message: 'Horário não disponível. Verifique se os horários foram gerados corretamente no painel administrativo.', 
+            code: 'SLOT_NOT_FOUND' 
+          } 
+        };
       }
     }
+    
+    console.log('✅ Slot disponível encontrado:', availableSlot);
     
     // 2. Buscar ou criar cliente
     const { data: customer, error: customerError } = await findOrCreateCustomer(bookingData.customer);
@@ -430,15 +414,21 @@ export const createBooking = async (bookingData: {
     }
     
     // 8. Atualizar o slot para 'booked'
+    console.log('🔄 Atualizando slot para booked:', {
+      slotId: availableSlot.id,
+      salonId: salonId,
+      date: bookingData.date,
+      timeSlot: availableSlot.time_slot,
+      bookingId: booking.id
+    });
+    
     const { error: slotUpdateError } = await supabase
       .from('slots')
       .update({ 
         status: 'booked', 
         booking_id: booking.id 
       })
-      .eq('salon_id', salonId)
-      .eq('date', bookingData.date)
-      .eq('time_slot', slot.time_slot);
+      .eq('id', availableSlot.id);
 
     if (slotUpdateError) {
       console.error('❌ Erro ao atualizar slot:', slotUpdateError);
@@ -449,9 +439,9 @@ export const createBooking = async (bookingData: {
     }
 
     console.log('✅ Slot atualizado para booked:', {
-      salon_id: salonId,
+      slotId: availableSlot.id,
       date: bookingData.date,
-      time_slot: slot.time_slot,
+      time_slot: availableSlot.time_slot,
       booking_id: booking.id
     });
 
