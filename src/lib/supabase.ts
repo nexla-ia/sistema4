@@ -290,70 +290,7 @@ export const createBooking = async (bookingData: {
     
     const salonId = salon.id;
     
-    // 1. Try to find the slot with multiple time format attempts
-    const originalTime = bookingData.time;
-    const timeWithSeconds = formatTimeWithSeconds(originalTime);
-    
-    console.log('🔍 Tentando encontrar slot para:', {
-      original: originalTime,
-      withSeconds: timeWithSeconds,
-      date: bookingData.date,
-      salonId: salonId
-    });
-    
-    // Buscar o slot disponível com diferentes formatos de tempo
-    // CRÍTICO: Deve estar 'available' E não ter booking_id
-    const { data: availableSlot, error: slotSearchError } = await supabase
-      .from('slots')
-      .select('*')
-      .eq('salon_id', salonId)
-      .eq('date', bookingData.date)
-      .or(`time_slot.eq.${timeWithSeconds},time_slot.eq.${originalTime}`)
-      .eq('status', 'available')
-      .is('booking_id', null)
-      .maybeSingle();
-    
-    if (slotSearchError) {
-      console.error('❌ Erro ao buscar slot:', slotSearchError);
-      return { data: null, error: slotSearchError };
-    }
-    
-    if (!availableSlot) {
-      console.log('❌ Slot não encontrado ou não disponível');
-      
-      // Verificar se o slot existe com outro status ou já tem booking
-      const { data: existingSlot } = await supabase
-        .from('slots')
-        .select('*')
-        .eq('salon_id', salonId)
-        .eq('date', bookingData.date)
-        .or(`time_slot.eq.${timeWithSeconds},time_slot.eq.${originalTime}`)
-        .maybeSingle();
-      
-      if (existingSlot) {
-        console.log('❌ Slot existe mas com status:', existingSlot.status, 'booking_id:', existingSlot.booking_id);
-        return { 
-          data: null, 
-          error: { 
-            message: `Horário já está ${existingSlot.status === 'booked' || existingSlot.booking_id ? 'ocupado' : 'bloqueado'}`, 
-            code: 'SLOT_UNAVAILABLE' 
-          } 
-        };
-      } else {
-        console.log('❌ Slot não existe no banco de dados');
-        return { 
-          data: null, 
-          error: { 
-            message: 'Horário não disponível. Verifique se os horários foram gerados corretamente no painel administrativo.', 
-            code: 'SLOT_NOT_FOUND' 
-          } 
-        };
-      }
-    }
-    
-    console.log('✅ Slot disponível encontrado:', availableSlot);
-    
-    // 2. Buscar ou criar cliente
+    // 1. Buscar ou criar cliente primeiro
     const { data: customer, error: customerError } = await findOrCreateCustomer(bookingData.customer);
     
     if (customerError || !customer) {
@@ -361,7 +298,7 @@ export const createBooking = async (bookingData: {
       return { data: null, error: customerError };
     }
     
-    // 3. Buscar informações dos serviços
+    // 2. Buscar informações dos serviços
     const { data: services, error: servicesError } = await supabase
       .from('services')
       .select('*')
@@ -372,80 +309,78 @@ export const createBooking = async (bookingData: {
       return { data: null, error: { message: 'Serviços não encontrados' } };
     }
     
-    // 4. Calcular totais
+    // 3. Calcular totais
     const totalPrice = services.reduce((sum, service) => sum + Number(service.price), 0);
     const totalDuration = services.reduce((sum, service) => sum + service.duration_minutes, 0);
     
-    // 5. Criar o agendamento
-    const { data: booking, error: bookingError } = await supabase
+    // 4. Usar RPC para criar agendamento e atualizar slot atomicamente
+    const originalTime = bookingData.time;
+    const timeWithSeconds = formatTimeWithSeconds(originalTime);
+    
+    console.log('🔄 Criando agendamento atomicamente via RPC:', {
+      salon_id: salonId,
+      customer_id: customer.id,
+      date: bookingData.date,
+      time: originalTime,
+      timeWithSeconds: timeWithSeconds,
+      total_price: totalPrice,
+      total_duration: totalDuration
+    });
+    
+    // Usar função RPC para operação atômica
+    const { data: result, error: rpcError } = await supabase.rpc('create_booking_and_update_slot', {
+      p_salon_id: salonId,
+      p_customer_id: customer.id,
+      p_booking_date: bookingData.date,
+      p_booking_time: originalTime,
+      p_booking_time_alt: timeWithSeconds,
+      p_status: 'confirmed',
+      p_total_price: totalPrice,
+      p_total_duration_minutes: totalDuration,
+      p_notes: bookingData.notes || null
+    });
+    
+    if (rpcError) {
+      console.error('❌ Erro na operação atômica:', rpcError);
+      
+      // Tratar erros específicos da função RPC
+      if (rpcError.message?.includes('SLOT_NOT_FOUND')) {
+        return { 
+          data: null, 
+          error: { 
+            message: 'Horário não disponível. Verifique se os horários foram gerados corretamente no painel administrativo.', 
+            code: 'SLOT_NOT_FOUND' 
+          } 
+        };
+      } else if (rpcError.message?.includes('SLOT_UNAVAILABLE')) {
+        return { 
+          data: null, 
+          error: { 
+            message: 'Horário já está ocupado ou bloqueado', 
+            code: 'SLOT_UNAVAILABLE' 
+          } 
+        };
+      }
+      
+      return { data: null, error: rpcError };
+    }
+    
+    if (!result || !result.booking_id) {
+      console.error('❌ Resultado inválido da função RPC:', result);
+      return { data: null, error: { message: 'Erro interno na criação do agendamento' } };
+    }
+    
+    // 6. Buscar o agendamento criado para retornar
+    const { data: booking, error: fetchError } = await supabase
       .from('bookings')
-      .insert([{
-        salon_id: salonId,
-        customer_id: customer.id,
-        booking_date: bookingData.date,
-        booking_time: bookingData.time,
-        status: 'confirmed',
-        total_price: totalPrice,
-        total_duration_minutes: totalDuration,
-        notes: bookingData.notes || null
-      }])
-      .select()
+      .select('*')
+      .eq('id', result.booking_id)
       .single();
     
-    if (bookingError) {
-      console.error('❌ Erro ao criar agendamento:', bookingError);
-      return { data: null, error: bookingError };
+    if (fetchError) {
+      console.error('❌ Erro ao buscar agendamento criado:', fetchError);
+      return { data: null, error: fetchError };
     }
-    
-    // 6. Criar os serviços do agendamento
-    const bookingServices = services.map(service => ({
-      booking_id: booking.id,
-      service_id: service.id,
-      price: Number(service.price)
-    }));
-    
-    const { error: servicesLinkError } = await supabase
-      .from('booking_services')
-      .insert(bookingServices);
-    
-    if (servicesLinkError) {
-      console.error('❌ Erro ao vincular serviços:', servicesLinkError);
-      // Tentar fazer rollback do agendamento
-      await supabase.from('bookings').delete().eq('id', booking.id);
-      return { data: null, error: servicesLinkError };
-    }
-    
-    // 8. Atualizar o slot para 'booked'
-    console.log('🔄 Atualizando slot para booked:', {
-      slotId: availableSlot.id,
-      salonId: salonId,
-      date: bookingData.date,
-      timeSlot: availableSlot.time_slot,
-      bookingId: booking.id
-    });
-    
-    const { error: slotUpdateError } = await supabase
-      .from('slots')
-      .update({ 
-        status: 'booked', 
-        booking_id: booking.id 
-      })
-      .eq('id', availableSlot.id);
-
-    if (slotUpdateError) {
-      console.error('❌ Erro ao atualizar slot:', slotUpdateError);
-      // Rollback the booking
-      await supabase.from('bookings').delete().eq('id', booking.id);
-      await supabase.from('booking_services').delete().eq('booking_id', booking.id);
-      return { data: null, error: { message: 'Falha ao bloquear horário. Tente novamente.' } };
-    }
-
-    console.log('✅ Slot atualizado para booked:', {
-      slotId: availableSlot.id,
-      date: bookingData.date,
-      time_slot: availableSlot.time_slot,
-      booking_id: booking.id
-    });
 
     console.log('✅ Agendamento criado com sucesso:', booking);
     return { data: booking, error: null };
