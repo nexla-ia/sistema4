@@ -302,6 +302,7 @@ export const createBooking = async (bookingData: {
     });
     
     // Buscar o slot disponível com diferentes formatos de tempo
+    // CRÍTICO: Deve estar 'available' E não ter booking_id
     const { data: availableSlot, error: slotSearchError } = await supabase
       .from('slots')
       .select('*')
@@ -309,6 +310,7 @@ export const createBooking = async (bookingData: {
       .eq('date', bookingData.date)
       .or(`time_slot.eq.${timeWithSeconds},time_slot.eq.${originalTime}`)
       .eq('status', 'available')
+      .is('booking_id', null)
       .maybeSingle();
     
     if (slotSearchError) {
@@ -319,7 +321,7 @@ export const createBooking = async (bookingData: {
     if (!availableSlot) {
       console.log('❌ Slot não encontrado ou não disponível');
       
-      // Verificar se o slot existe com outro status
+      // Verificar se o slot existe com outro status ou já tem booking
       const { data: existingSlot } = await supabase
         .from('slots')
         .select('*')
@@ -329,11 +331,11 @@ export const createBooking = async (bookingData: {
         .maybeSingle();
       
       if (existingSlot) {
-        console.log('❌ Slot existe mas com status:', existingSlot.status);
+        console.log('❌ Slot existe mas com status:', existingSlot.status, 'booking_id:', existingSlot.booking_id);
         return { 
           data: null, 
           error: { 
-            message: `Horário já está ${existingSlot.status === 'booked' ? 'ocupado' : 'bloqueado'}`, 
+            message: `Horário já está ${existingSlot.status === 'booked' || existingSlot.booking_id ? 'ocupado' : 'bloqueado'}`, 
             code: 'SLOT_UNAVAILABLE' 
           } 
         };
@@ -577,6 +579,12 @@ export const getAvailableSlots = async (date: string) => {
     return { data: [], error };
   }
   
+  console.log(`🔍 Slots encontrados para ${date}:`, data?.map(slot => ({
+    time: slot.time_slot,
+    status: slot.status,
+    booking_id: slot.booking_id
+  })));
+  
   // Convert time format for frontend display (remove seconds)
   const formattedSlots = (data || []).map(slot => ({
     ...slot,
@@ -584,7 +592,6 @@ export const getAvailableSlots = async (date: string) => {
   }));
   
   console.log(`✅ ${formattedSlots?.length || 0} slots disponíveis encontrados para ${date}`);
-  console.log('Slots encontrados:', formattedSlots);
   
   return { data: formattedSlots || [], error };
 };
