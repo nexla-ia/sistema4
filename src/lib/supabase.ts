@@ -355,31 +355,7 @@ export const createBooking = async (bookingData: {
       console.log('🔗 Serviços vinculados ao agendamento');
     }
     
-    // Se o status for 'completed' ou 'no_show', liberar o slot
-    if (status === 'completed' || status === 'no_show') {
-      console.log('🔓 Liberando slot do agendamento concluído/não compareceu');
-      
-      const { error: slotError } = await supabase
-        .from('slots')
-        .update({ 
-          status: 'available', 
-          booking_id: null 
-        })
-        .eq('booking_id', bookingId);
-      
-      if (slotError) {
-        console.warn('⚠️ Não foi possível liberar o slot (agendamento atualizado):', slotError);
-      } else {
-        console.log('✅ Slot liberado com sucesso');
-      }
-    }
-    
     // Try to update slot status (optional, don't fail if it doesn't work)
-    
-  } catch (error) {
-    console.error('❌ Erro inesperado ao atualizar agendamento:', error);
-    return { data: null, error };
-  }
     try {
       const { data: slot } = await supabase
         .from('slots')
@@ -469,20 +445,44 @@ export const updateBookingStatus = async (bookingId: string, status: Booking['st
     }
     
     // Atualizar o status do agendamento
-  const { data, error } = await supabase
-    .from('bookings')
-    .update({ status })
-    .eq('id', bookingId)
-    .select()
-    .single();
-  
-  if (error) {
-    console.error('Erro ao atualizar status:', error);
-  } else {
-    console.log('✅ Status atualizado:', data);
+    const { data, error } = await supabase
+      .from('bookings')
+      .update({ status })
+      .eq('id', bookingId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Erro ao atualizar status:', error);
+    } else {
+      console.log('✅ Status atualizado:', data);
+    }
+    
+    // Se o status for 'completed' ou 'no_show', liberar o slot
+    if (status === 'completed' || status === 'no_show') {
+      console.log('🔓 Liberando slot do agendamento concluído/não compareceu');
+      
+      const { error: slotError } = await supabase
+        .from('slots')
+        .update({ 
+          status: 'available', 
+          booking_id: null 
+        })
+        .eq('booking_id', bookingId);
+      
+      if (slotError) {
+        console.warn('⚠️ Não foi possível liberar o slot (agendamento atualizado):', slotError);
+      } else {
+        console.log('✅ Slot liberado com sucesso');
+      }
+    }
+    
+    return { data, error };
+    
+  } catch (error) {
+    console.error('❌ Erro inesperado ao atualizar agendamento:', error);
+    return { data: null, error };
   }
-  
-  return { data, error };
 };
 
 // Slots
@@ -674,7 +674,6 @@ export const saveDefaultSchedule = async (schedule: DefaultSchedule, salonId: st
     
     if (error) {
       console.error('❌ Erro ao salvar configuração:', error);
-      return { data: null, error };
       return { data: null, error };
     }
     
