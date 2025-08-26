@@ -317,12 +317,19 @@ const BookingForm = ({ selectedServices, onBack, salon }: BookingFormProps) => {
                     </p>
                     
                     <div className="bg-white/70 rounded-xl p-4 mb-4 border border-green-300">
-                      <p className="text-sm text-green-700">
-                        <strong>📱 WhatsApp:</strong> {salon?.phone || '(69) 99283-9458'}
-                      </p>
-                      <p className="text-xs text-green-600 mt-1">
-                        Envie uma foto do comprovante de pagamento
-                      </p>
+                      <a
+                        href="https://wa.me/5569992839458"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block hover:bg-white/90 rounded-lg p-2 transition-colors cursor-pointer"
+                      >
+                        <p className="text-sm text-green-700 hover:text-green-800">
+                          <strong>📱 WhatsApp:</strong> {salon?.phone || '(69) 99283-9458'}
+                        </p>
+                        <p className="text-xs text-green-600 hover:text-green-700 mt-1">
+                          Envie uma foto do comprovante de pagamento
+                        </p>
+                      </a>
                     </div>
                     
                     <a
