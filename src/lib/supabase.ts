@@ -378,9 +378,10 @@ export const createBooking = async (bookingData: {
     
     console.log('✅ Agendamento criado:', booking);
     
-    // 5. Atualizar o slot para 'booked' usando apenas o ID
+    // 5. Atualizar o slot para 'booked' usando o ID correto
+    const slotId = slot.id;
     console.log('🔄 Atualizando slot para booked usando ID:', {
-      slot_id: slot.id,
+      id: slotId,
       booking_id: booking.id
     });
     
@@ -390,13 +391,13 @@ export const createBooking = async (bookingData: {
         status: 'booked',
         booking_id: booking.id
       })
-      .eq('id', slot.id);
+      .eq('id', slotId)
     
     if (slotError) {
       console.error('❌ Erro ao atualizar slot:', slotError);
       console.warn('⚠️ Agendamento criado mas slot não foi atualizado');
     } else {
-      console.log('✅ Slot atualizado para booked com sucesso');
+      console.log('✅ Slot atualizado para booked:', slotUpdate[0]);
     }
     
     // 6. Criar relacionamentos booking_services
