@@ -378,10 +378,9 @@ export const createBooking = async (bookingData: {
     
     console.log('✅ Agendamento criado:', booking);
     
-    // 5. Atualizar o slot para 'booked' usando o ID correto
-    const slotId = slot.id;
+    // 5. Atualizar o slot para 'booked' usando apenas o ID
     console.log('🔄 Atualizando slot para booked usando ID:', {
-      id: slotId,
+      slot_id: slot.id,
       booking_id: booking.id
     });
     
@@ -391,13 +390,24 @@ export const createBooking = async (bookingData: {
         status: 'booked',
         booking_id: booking.id
       })
-      .eq('id', slotId)
+      .eq('id', slot.id)
+      .eq('status', 'available')
+      .select();
     
     if (slotError) {
       console.error('❌ Erro ao atualizar slot:', slotError);
-      console.warn('⚠️ Agendamento criado mas slot não foi atualizado');
-    } else {
+      console.warn('⚠️ Agendamento criado mas slot não foi atualizado - continuando...');
+    } else if (slotUpdate && slotUpdate.length > 0) {
       console.log('✅ Slot atualizado para booked:', slotUpdate[0]);
+    } else {
+      console.warn('⚠️ Nenhum slot foi atualizado - pode já estar ocupado');
+      // Debug: verificar estado atual do slot
+      const { data: currentSlot } = await supabase
+        .from('slots')
+        .select('*')
+        .eq('id', slot.id)
+        .single();
+      console.log('Estado atual do slot:', currentSlot);
     }
     
     // 6. Criar relacionamentos booking_services
@@ -459,31 +469,6 @@ export const getBookings = async (salonId: string, date?: string) => {
 
 export const updateBookingStatus = async (bookingId: string, status: Booking['status']) => {
   console.log('📝 Atualizando status do agendamento:', bookingId, status);
-  
-  // 5. Atualizar o slot para 'booked' usando o ID encontrado
-  console.log('🔄 Atualizando slot para booked:', {
-    slot_id: availableSlot.id,
-    booking_id: booking.id,
-    current_time_slot: availableSlot.time_slot
-  });
-  
-  const { data: slotUpdate, error: slotError } = await supabase
-    .from('slots')
-    .update({ 
-      status: 'booked',
-      booking_id: booking.id
-    })
-    .eq('id', availableSlot.id)
-    .select();
-  
-  if (slotError) {
-    console.error('❌ Erro ao atualizar slot:', slotError);
-    // Não falhar o agendamento por causa do slot
-  } else if (slotUpdate && slotUpdate.length > 0) {
-    console.log('✅ Slot atualizado com sucesso:', slotUpdate[0]);
-  } else {
-    console.warn('⚠️ Nenhum slot foi atualizado - pode já estar ocupado');
-  }
   
   const { data, error } = await supabase
     .from('bookings')
