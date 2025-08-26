@@ -313,73 +313,73 @@ export const createBooking = async (bookingData: {
     const totalPrice = services.reduce((sum, service) => sum + Number(service.price), 0);
     const totalDuration = services.reduce((sum, service) => sum + service.duration_minutes, 0);
     
-    // 4. Usar RPC para criar agendamento e atualizar slot atomicamente
-    const originalTime = bookingData.time;
-    const timeWithSeconds = formatTimeWithSeconds(originalTime);
-    
-    console.log('🔄 Criando agendamento atomicamente via RPC:', {
-      salon_id: salonId,
-      customer_id: customer.id,
-      date: bookingData.date,
-      time: originalTime,
-      timeWithSeconds: timeWithSeconds,
-      total_price: totalPrice,
-      total_duration: totalDuration
-    });
-    
-    // Usar função RPC para operação atômica
-    const { data: result, error: rpcError } = await supabase.rpc('create_booking_and_update_slot', {
-      p_salon_id: salonId,
-      p_customer_id: customer.id,
-      p_booking_date: bookingData.date,
-      p_booking_time: originalTime,
-      p_booking_time_alt: timeWithSeconds,
-      p_status: 'confirmed',
-      p_total_price: totalPrice,
-      p_total_duration_minutes: totalDuration,
-      p_notes: bookingData.notes || null
-    });
-    
-    if (rpcError) {
-      console.error('❌ Erro na operação atômica:', rpcError);
-      
-      // Tratar erros específicos da função RPC
-      if (rpcError.message?.includes('SLOT_NOT_FOUND')) {
-        return { 
-          data: null, 
-          error: { 
-            message: 'Horário não disponível. Verifique se os horários foram gerados corretamente no painel administrativo.', 
-            code: 'SLOT_NOT_FOUND' 
-          } 
-        };
-      } else if (rpcError.message?.includes('SLOT_UNAVAILABLE')) {
-        return { 
-          data: null, 
-          error: { 
-            message: 'Horário já está ocupado ou bloqueado', 
-            code: 'SLOT_UNAVAILABLE' 
-          } 
-        };
-      }
-      
-      return { data: null, error: rpcError };
-    }
-    
-    if (!result || !result.booking_id) {
-      console.error('❌ Resultado inválido da função RPC:', result);
-      return { data: null, error: { message: 'Erro interno na criação do agendamento' } };
-    }
-    
-    // 6. Buscar o agendamento criado para retornar
-    const { data: booking, error: fetchError } = await supabase
+    // 4. Criar o agendamento
+    const { data: booking, error: bookingError } = await supabase
       .from('bookings')
-      .select('*')
-      .eq('id', result.booking_id)
+      .insert([{
+        salon_id: salonId,
+        customer_id: customer.id,
+        booking_date: bookingData.date,
+        booking_time: bookingData.time,
+        status: 'confirmed',
+        total_price: totalPrice,
+        total_duration_minutes: totalDuration,
+        notes: bookingData.notes || null
+      }])
+      .select()
       .single();
     
-    if (fetchError) {
-      console.error('❌ Erro ao buscar agendamento criado:', fetchError);
-      return { data: null, error: fetchError };
+    if (bookingError) {
+      console.error('❌ Erro ao criar agendamento:', bookingError);
+      return { data: null, error: bookingError };
+    }
+    
+    console.log('✅ Agendamento criado:', booking);
+    
+    // 5. Atualizar o slot para 'booked'
+    const timeWithSeconds = formatTimeWithSeconds(bookingData.time);
+    console.log('🔄 Atualizando slot para booked:', {
+      salon_id: salonId,
+      date: bookingData.date,
+      time: timeWithSeconds,
+      booking_id: booking.id
+    });
+    
+    const { data: slotUpdate, error: slotError } = await supabase
+      .from('slots')
+      .update({ 
+        status: 'booked',
+        booking_id: booking.id
+      })
+      .eq('salon_id', salonId)
+      .eq('date', bookingData.date)
+      .eq('time_slot', timeWithSeconds)
+      .eq('status', 'available')
+      .select();
+    
+    if (slotError) {
+      console.error('❌ Erro ao atualizar slot:', slotError);
+      // Não falhar o agendamento por causa do slot
+    } else if (slotUpdate && slotUpdate.length > 0) {
+      console.log('✅ Slot atualizado para booked:', slotUpdate[0]);
+    } else {
+      console.warn('⚠️ Nenhum slot foi atualizado - pode já estar ocupado');
+    }
+    
+    // 6. Criar relacionamentos booking_services
+    const bookingServices = services.map(service => ({
+      booking_id: booking.id,
+      service_id: service.id,
+      price: service.price
+    }));
+    
+    const { error: servicesError2 } = await supabase
+      .from('booking_services')
+      .insert(bookingServices);
+    
+    if (servicesError2) {
+      console.error('❌ Erro ao criar booking_services:', servicesError2);
+      // Não falhar por causa disso
     }
 
     console.log('✅ Agendamento criado com sucesso:', booking);
