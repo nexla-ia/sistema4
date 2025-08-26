@@ -297,6 +297,54 @@ const BookingForm = ({ selectedServices, onBack, salon }: BookingFormProps) => {
                 Em breve entraremos em contato para confirmar todos os detalhes.
               </p>
               
+              {/* Botão de Pagamento para Massagem MEGA PROMOÇÃO */}
+              {selectedServices.some(service => 
+                service.name.toLowerCase().includes('massagem relaxante mega promoção')
+              ) && (
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 mb-6 border-2 border-green-200">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <span className="text-white text-2xl">💳</span>
+                    </div>
+                    
+                    <h3 className="text-xl font-bold text-green-900 mb-3">
+                      🎉 MEGA PROMOÇÃO - Pague Agora!
+                    </h3>
+                    
+                    <p className="text-green-800 mb-4 leading-relaxed">
+                      Aproveite nossa promoção especial! Após o pagamento, envie o comprovante 
+                      no WhatsApp da clínica para confirmar seu agendamento.
+                    </p>
+                    
+                    <div className="bg-white/70 rounded-xl p-4 mb-4 border border-green-300">
+                      <p className="text-sm text-green-700">
+                        <strong>📱 WhatsApp:</strong> {salon?.phone || '(69) 99283-9458'}
+                      </p>
+                      <p className="text-xs text-green-600 mt-1">
+                        Envie uma foto do comprovante de pagamento
+                      </p>
+                    </div>
+                    
+                    <a
+                      href="https://mpago.li/2dLrf5M"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center bg-gradient-to-r from-green-500 to-green-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:from-green-600 hover:to-green-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                    >
+                      <span className="text-2xl mr-3">💳</span>
+                      Pague Agora - MEGA PROMOÇÃO
+                      <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                    
+                    <p className="text-xs text-green-600 mt-3">
+                      ⚡ Pagamento seguro via Mercado Pago
+                    </p>
+                  </div>
+                </div>
+              )}
+              
               <button
                 onClick={() => window.location.reload()}
                 className="bg-gradient-to-r from-rose-500 to-pink-600 text-white px-8 py-3 rounded-full font-semibold hover:from-rose-600 hover:to-pink-700 transition-all duration-300"
