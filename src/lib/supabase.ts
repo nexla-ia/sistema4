@@ -290,93 +290,50 @@ export const createBooking = async (bookingData: {
     
     const salonId = salon.id;
     
-    // 1. Buscar ou criar cliente primeiro
-    const { data: customer, error: customerError } = await findOrCreateCustomer(bookingData.customer);
+    // 1. Verificar se o slot específico está disponível ANTES de criar o agendamento
+    const timeWithSeconds = formatTimeWithSeconds(bookingData.time);
+    const timeWithoutSeconds = formatTimeForDisplay(bookingData.time);
     
-    if (customerError || !customer) {
-      console.error('❌ Erro ao processar cliente:', customerError);
-      return { data: null, error: customerError };
-    }
+    console.log('🔍 Verificando disponibilidade do slot:', {
+      salon_id: salonId,
+      date: bookingData.date,
+      time_with_seconds: timeWithSeconds,
+      time_without_seconds: timeWithoutSeconds
+    });
     
-    // 2. Buscar informações dos serviços
-    const { data: services, error: servicesError } = await supabase
-      .from('services')
-      .select('*')
-      .in('id', bookingData.services);
-    
-    if (servicesError || !services || services.length === 0) {
-      console.error('❌ Erro ao buscar serviços:', servicesError);
-      return { data: null, error: { message: 'Serviços não encontrados' } };
-    }
-    
-    // 3. Calcular totais
-    const totalPrice = services.reduce((sum, service) => sum + Number(service.price), 0);
-    const totalDuration = services.reduce((sum, service) => sum + service.duration_minutes, 0);
-    
-    // 4. Calcular quantos slots de 15 minutos são necessários
-    const slotsNeeded = Math.ceil(totalDuration / 15);
-    console.log(`⏱️ Duração total dos serviços: ${totalDuration} minutos`);
-    console.log(`🎯 Slots necessários (15min cada): ${slotsNeeded}`);
-    
-    // 5. Gerar lista de horários consecutivos necessários
-    const requiredSlots = [];
-    const startTime = new Date(`2000-01-01T${bookingData.time}:00`);
-    
-    for (let i = 0; i < slotsNeeded; i++) {
-      const slotTime = new Date(startTime.getTime() + (i * 15 * 60 * 1000));
-      const timeString = slotTime.toTimeString().substring(0, 8); // HH:MM:SS
-      requiredSlots.push(timeString);
-    }
-    
-    console.log('📋 Slots necessários:', requiredSlots);
-    
-    // 6. Verificar se todos os slots estão disponíveis
-    const { data: availableSlots, error: slotsError } = await supabase
+    // Buscar slot usando .or() para comparar ambos os formatos
+    const { data: availableSlot, error: slotCheckError } = await supabase
       .from('slots')
-      .select('*')
+      .select('id, status, booking_id, time_slot')
       .eq('salon_id', salonId)
       .eq('date', bookingData.date)
-      .in('time_slot', requiredSlots)
-      .eq('status', 'available');
+      .or(`time_slot.eq.${timeWithSeconds},time_slot.eq.${timeWithoutSeconds}`)
+      .eq('status', 'available')
+      .is('booking_id', null)
+      .maybeSingle();
     
-    if (slotsError) {
-      console.error('❌ Erro ao verificar slots:', slotsError);
-      return { data: null, error: { message: 'Erro ao verificar disponibilidade' } };
+    if (slotCheckError) {
+      console.error('❌ Erro ao verificar slot:', slotCheckError);
+      return { data: null, error: { message: 'Erro ao verificar disponibilidade do horário' } };
     }
     
-    if (!availableSlots || availableSlots.length !== slotsNeeded) {
-      console.error(`❌ Slots insuficientes. Necessários: ${slotsNeeded}, Disponíveis: ${availableSlots?.length || 0}`);
-      
-      // Identificar quais slots estão ocupados
-      const availableSlotTimes = availableSlots?.map(slot => slot.time_slot) || [];
-      const occupiedSlots = requiredSlots.filter(slot => !availableSlotTimes.includes(slot));
-      
+    if (!availableSlot) {
+      console.warn('⚠️ Slot não disponível:', {
+        salon_id: salonId,
+        date: bookingData.date,
+        time_with_seconds: timeWithSeconds,
+        time_without_seconds: timeWithoutSeconds
+      });
       return { 
         data: null, 
         error: { 
-          message: `Horário indisponível. Slots ocupados: ${occupiedSlots.join(', ')}`,
+          message: 'Horário não está mais disponível', 
           code: 'SLOT_UNAVAILABLE' 
         } 
       };
     }
     
-    console.log(`✅ Slots disponíveis encontrados: ${availableSlots.length}`);
-    // 7. Criar o agendamento
-    const { data: booking, error: bookingError } = await supabase
-      .from('bookings')
-      .insert([{
-        salon_id: salonId,
-        customer_id: customer.id,
-        booking_date: bookingData.date,
-        booking_time: bookingData.time,
-        status: 'confirmed',
-        total_price: totalPrice,
-        total_duration_minutes: totalDuration,
-        notes: bookingData.notes || null
-      }])
-      .select()
-      .single();
-    
+    console.log('✅ Slot disponível encontrado:', availableSlot);
     if (bookingError) {
       console.error('❌ Erro ao criar agendamento:', bookingError);
       return { data: null, error: bookingError };
@@ -384,55 +341,37 @@ export const createBooking = async (bookingData: {
     
     console.log('✅ Agendamento criado:', booking);
     
-    // 8. Atualizar TODOS os slots necessários para 'booked' - MÉTODO DIRETO
-    console.log('🔄 Atualizando slots para booked (método direto):', requiredSlots);
+    // 5. Atualizar o slot para 'booked'
+    const timeWithSeconds = formatTimeWithSeconds(bookingData.time);
+    console.log('🔄 Atualizando slot para booked:', {
+      salon_id: salonId,
+      date: bookingData.date,
+      time: timeWithSeconds,
+      booking_id: booking.id
+    });
     
-    // Atualizar cada slot individualmente para garantir que funcione
-    let slotsUpdated = 0;
-    const updateErrors = [];
+    const { data: slotUpdate, error: slotError } = await supabase
+      .from('slots')
+      .update({ 
+        status: 'booked',
+        booking_id: booking.id
+      })
+      .eq('salon_id', salonId)
+      .eq('date', bookingData.date)
+      .eq('time_slot', timeWithSeconds)
+      .eq('status', 'available')
+      .select();
     
-    for (const timeSlot of requiredSlots) {
-      try {
-        console.log(`🔄 Atualizando slot individual: ${timeSlot}`);
-        
-        const { data: slotUpdate, error: individualSlotError } = await supabase
-          .from('slots')
-          .update({ 
-            status: 'booked',
-            booking_id: booking.id
-          })
-          .eq('salon_id', salonId)
-          .eq('date', bookingData.date)
-          .eq('time_slot', timeSlot)
-          .eq('status', 'available') // Só atualiza se estiver disponível
-          .select()
-          .maybeSingle();
-        
-        if (individualSlotError) {
-          console.error(`❌ Erro ao atualizar slot ${timeSlot}:`, individualSlotError);
-          updateErrors.push(`${timeSlot}: ${individualSlotError.message}`);
-        } else if (slotUpdate) {
-          console.log(`✅ Slot ${timeSlot} atualizado com sucesso`);
-          slotsUpdated++;
-        } else {
-          console.warn(`⚠️ Slot ${timeSlot} não foi encontrado ou já estava ocupado`);
-        }
-      } catch (error) {
-        console.error(`❌ Erro inesperado ao atualizar slot ${timeSlot}:`, error);
-        updateErrors.push(`${timeSlot}: erro inesperado`);
-      }
+    if (slotError) {
+      console.error('❌ Erro ao atualizar slot:', slotError);
+      // Não falhar o agendamento por causa do slot
+    } else if (slotUpdate && slotUpdate.length > 0) {
+      console.log('✅ Slot atualizado para booked:', slotUpdate[0]);
+    } else {
+      console.warn('⚠️ Nenhum slot foi atualizado - pode já estar ocupado');
     }
     
-    console.log(`📊 Resumo da atualização de slots:`);
-    console.log(`   - Slots necessários: ${requiredSlots.length}`);
-    console.log(`   - Slots atualizados: ${slotsUpdated}`);
-    console.log(`   - Erros: ${updateErrors.length}`);
-    
-    if (updateErrors.length > 0) {
-      console.warn('⚠️ Alguns slots não foram atualizados:', updateErrors);
-    }
-    
-    // 9. Criar relacionamentos booking_services
+    // 6. Criar relacionamentos booking_services
     const bookingServices = services.map(service => ({
       booking_id: booking.id,
       service_id: service.id,
@@ -487,48 +426,29 @@ export const getBookings = async (salonId: string, date?: string) => {
   }
   
   return { data, error };
-};
-
-export const updateBookingStatus = async (bookingId: string, status: Booking['status']) => {
-  console.log('📝 Atualizando status do agendamento:', bookingId, 'para', status);
-  
-  // Se o status for 'completed' ou 'no_show', precisamos liberar o slot
-  if (status === 'completed' || status === 'no_show') {
-    // Primeiro buscar o agendamento para pegar os dados do slot
-    const { data: booking, error: bookingError } = await supabase
-      .from('bookings')
-      .select('salon_id, booking_date, booking_time')
-      .eq('id', bookingId)
-      .single();
+    // 5. Atualizar o slot para 'booked' usando o ID encontrado
+    console.log('🔄 Atualizando slot para booked:', {
+      slot_id: availableSlot.id,
+      booking_id: booking.id,
+      current_time_slot: availableSlot.time_slot
+    });
     
-    if (bookingError) {
-      console.error('Erro ao buscar agendamento:', bookingError);
-    } else if (booking) {
-      // Liberar o slot correspondente
-      const formattedTime = formatTimeWithSeconds(booking.booking_time);
-      
-      console.log(`🔓 Liberando slot (${status}):`, {
-        salon_id: booking.salon_id,
-        date: booking.booking_date,
-        time: formattedTime
-      });
-      
-      const { error: slotError } = await supabase
-        .from('slots')
-        .update({ 
-          status: 'available',
-          booking_id: null 
-        })
-        .eq('salon_id', booking.salon_id)
-        .eq('date', booking.booking_date)
-        .eq('time_slot', formattedTime)
-        .eq('booking_id', bookingId);
-      
-      if (slotError) {
-        console.error('❌ Erro ao liberar slot:', slotError);
-      } else {
-        console.log(`✅ Slot liberado com sucesso (${status})`);
-      }
+    const { data: slotUpdate, error: slotError } = await supabase
+      .from('slots')
+      .update({ 
+        status: 'booked',
+        booking_id: booking.id
+      })
+      .eq('id', availableSlot.id)
+      .select();
+    
+    if (slotError) {
+      console.error('❌ Erro ao atualizar slot:', slotError);
+      // Não falhar o agendamento por causa do slot
+    } else if (slotUpdate && slotUpdate.length > 0) {
+      console.log('✅ Slot atualizado com sucesso:', slotUpdate[0]);
+    } else {
+      console.warn('⚠️ Nenhum slot foi atualizado - pode já estar ocupado');
     }
   }
   
