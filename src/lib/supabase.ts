@@ -385,7 +385,7 @@ export const createBooking = async (bookingData: {
       booking_id: booking.id
     });
     
-    const { error: slotError } = await supabase
+    const { data: slotUpdate, error: slotError } = await supabase
       .from('slots')
       .update({ 
         status: 'booked',
