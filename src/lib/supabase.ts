@@ -355,7 +355,31 @@ export const createBooking = async (bookingData: {
       console.log('🔗 Serviços vinculados ao agendamento');
     }
     
+    // Se o status for 'completed' ou 'no_show', liberar o slot
+    if (status === 'completed' || status === 'no_show') {
+      console.log('🔓 Liberando slot do agendamento concluído/não compareceu');
+      
+      const { error: slotError } = await supabase
+        .from('slots')
+        .update({ 
+          status: 'available', 
+          booking_id: null 
+        })
+        .eq('booking_id', bookingId);
+      
+      if (slotError) {
+        console.warn('⚠️ Não foi possível liberar o slot (agendamento atualizado):', slotError);
+      } else {
+        console.log('✅ Slot liberado com sucesso');
+      }
+    }
+    
     // Try to update slot status (optional, don't fail if it doesn't work)
+    
+  } catch (error) {
+    console.error('❌ Erro inesperado ao atualizar agendamento:', error);
+    return { data: null, error };
+  }
     try {
       const { data: slot } = await supabase
         .from('slots')
@@ -431,6 +455,20 @@ export const getBookings = async (salonId: string, date?: string) => {
 export const updateBookingStatus = async (bookingId: string, status: Booking['status']) => {
   console.log('📝 Atualizando status do agendamento:', bookingId, status);
   
+  try {
+    // Primeiro, buscar o agendamento atual para obter informações do slot
+    const { data: currentBooking, error: fetchError } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('id', bookingId)
+      .single();
+    
+    if (fetchError) {
+      console.error('Erro ao buscar agendamento:', fetchError);
+      return { data: null, error: fetchError };
+    }
+    
+    // Atualizar o status do agendamento
   const { data, error } = await supabase
     .from('bookings')
     .update({ status })
@@ -636,6 +674,7 @@ export const saveDefaultSchedule = async (schedule: DefaultSchedule, salonId: st
     
     if (error) {
       console.error('❌ Erro ao salvar configuração:', error);
+      return { data: null, error };
       return { data: null, error };
     }
     
