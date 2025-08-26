@@ -269,23 +269,125 @@ export const createBooking = async (bookingData: {
   console.log('📅 Iniciando criação de agendamento:', bookingData);
   
   try {
-    // Use secure RPC function to handle the entire booking process
-    const { data: booking, error } = await supabase.rpc('book_slot_and_create_booking', {
-      p_customer_name: bookingData.customer.name,
-      p_customer_phone: bookingData.customer.phone,
-      p_customer_email: bookingData.customer.email || null,
-      p_booking_date: bookingData.date,
-      p_booking_time: formatTimeWithSeconds(bookingData.time),
-      p_service_ids: bookingData.services,
-      p_notes: bookingData.notes || null
-    });
+    // Get the first active salon
+    const { data: salon, error: salonError } = await supabase
+      .from('salons')
+      .select('id')
+      .eq('active', true)
+      .limit(1)
+      .maybeSingle();
     
-    if (error) {
-      console.error('❌ Erro ao criar agendamento via RPC:', error);
-      return { data: null, error };
+    if (salonError || !salon) {
+      console.error('❌ Erro ao buscar salão:', salonError);
+      return { data: null, error: salonError || new Error('Salão não encontrado') };
+    }
+    
+    const salonId = salon.id;
+    console.log('🏢 Salão encontrado:', salonId);
+    
+    // Find or create customer
+    const { data: customer, error: customerError } = await findOrCreateCustomer(bookingData.customer);
+    
+    if (customerError || !customer) {
+      console.error('❌ Erro ao criar/encontrar cliente:', customerError);
+      return { data: null, error: customerError || new Error('Erro ao processar cliente') };
+    }
+    
+    console.log('👤 Cliente processado:', customer);
+    
+    // Get services data
+    const { data: services, error: servicesError } = await supabase
+      .from('services')
+      .select('*')
+      .in('id', bookingData.services);
+    
+    if (servicesError || !services || services.length === 0) {
+      console.error('❌ Erro ao buscar serviços:', servicesError);
+      return { data: null, error: servicesError || new Error('Serviços não encontrados') };
+    }
+    
+    console.log('🛍️ Serviços encontrados:', services);
+    
+    // Calculate totals
+    const totalPrice = services.reduce((sum, service) => sum + Number(service.price), 0);
+    const totalDuration = services.reduce((sum, service) => sum + service.duration_minutes, 0);
+    
+    console.log('💰 Total calculado:', { totalPrice, totalDuration });
+    
+    // Create booking
+    const { data: booking, error: bookingError } = await supabase
+      .from('bookings')
+      .insert([{
+        salon_id: salonId,
+        customer_id: customer.id,
+        booking_date: bookingData.date,
+        booking_time: formatTimeWithSeconds(bookingData.time),
+        status: 'confirmed',
+        total_price: totalPrice,
+        total_duration_minutes: totalDuration,
+        notes: bookingData.notes || null
+      }])
+      .select()
+      .single();
+    
+    if (bookingError) {
+      console.error('❌ Erro ao criar agendamento:', bookingError);
+      return { data: null, error: bookingError };
+    }
+    
+    console.log('📅 Agendamento criado:', booking);
+    
+    // Create booking services
+    const bookingServices = services.map(service => ({
+      booking_id: booking.id,
+      service_id: service.id,
+      price: Number(service.price)
+    }));
+    
+    const { error: servicesLinkError } = await supabase
+      .from('booking_services')
+      .insert(bookingServices);
+    
+    if (servicesLinkError) {
+      console.error('❌ Erro ao vincular serviços:', servicesLinkError);
+      // Continue anyway, booking was created
+    } else {
+      console.log('🔗 Serviços vinculados ao agendamento');
+    }
+    
+    // Try to update slot status (optional, don't fail if it doesn't work)
+    try {
+      const { data: slot } = await supabase
+        .from('slots')
+        .select('*')
+        .eq('salon_id', salonId)
+        .eq('date', bookingData.date)
+        .eq('time_slot', formatTimeWithSeconds(bookingData.time))
+        .eq('status', 'available')
+        .limit(1)
+        .maybeSingle();
+      
+      if (slot) {
+        console.log('🎯 Slot encontrado para atualização:', slot.id);
+        
+        const { error: slotError } = await supabase
+          .from('slots')
+          .update({ status: 'booked', booking_id: booking.id })
+          .eq('id', slot.id);
+        
+        if (slotError) {
+          console.warn('⚠️ Não foi possível atualizar slot (agendamento mantido):', slotError);
+        } else {
+          console.log('✅ Slot atualizado para booked');
+        }
+      } else {
+        console.warn('⚠️ Slot não encontrado para atualização (agendamento mantido)');
+      }
+    } catch (slotError) {
+      console.warn('⚠️ Erro ao tentar atualizar slot (agendamento mantido):', slotError);
     }
 
-    console.log('✅ Agendamento criado com sucesso:', booking);
+    console.log('✅ Agendamento criado com sucesso');
     return { data: booking, error: null };
     
   } catch (error) {
