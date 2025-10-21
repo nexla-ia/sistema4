@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Criar Administrador - Centro Terapêutico</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+    p {
+      color: #666;
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+      font-weight: 500;
+    }
+    input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 16px;
+      transition: border 0.3s;
+    }
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .message {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 10px;
+      display: none;
+    }
+    .message.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .message.show {
+      display: block;
+    }
+    .credentials {
+      background: #f8f9fa;
+      padding: 16px;
+      border-radius: 10px;
+      margin-top: 16px;
+    }
+    .credentials strong {
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+    }
+    .credentials code {
+      background: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      color: #667eea;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔐 Criar Administrador</h1>
+    <p>Crie um usuário administrador para acessar o painel de controle do centro terapêutico.</p>
+
+    <form id="adminForm">
+      <div class="form-group">
+        <label for="email">Email do Administrador</label>
+        <input
+          type="email"
+          id="email"
+          value="adm.nexla@gmail.com"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="password">Senha (mínimo 6 caracteres)</label>
+        <input
+          type="password"
+          id="password"
+          value="Admin@2025"
+          required
+          minlength="6"
+        >
+      </div>
+
+      <button type="submit" id="submitBtn">Criar Administrador</button>
+    </form>
+
+    <div id="message" class="message"></div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://iusfjgaqbfekmdlmqzsm.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml1c2ZqZ2FxYmZla21kbG1xenNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUwMjczMjEsImV4cCI6MjA3MDYwMzMyMX0.38NgpX8suGhIPzpsbg73O5BiPnEMBDv-ZKHETzJJVo0';
+    const SALON_ID = '4f59cc12-91c1-44fc-b158-697b9056e0cb';
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const form = document.getElementById('adminForm');
+    const message = document.getElementById('message');
+    const submitBtn = document.getElementById('submitBtn');
+
+    function showMessage(text, type) {
+      message.textContent = text;
+      message.className = `message ${type} show`;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Criando...';
+
+      try {
+        // Criar usuário
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              role: 'admin'
+            }
+          }
+        });
+
+        if (authError) throw authError;
+
+        if (!authData.user) {
+          throw new Error('Usuário não foi criado');
+        }
+
+        // Associar ao salão
+        const { error: salonError } = await supabase
+          .from('salons')
+          .update({ user_id: authData.user.id })
+          .eq('id', SALON_ID);
+
+        if (salonError) {
+          console.warn('Aviso ao associar salão:', salonError);
+        }
+
+        message.innerHTML = `
+          <strong>✅ Administrador criado com sucesso!</strong>
+          <div class="credentials">
+            <strong>Credenciais de acesso:</strong>
+            <div>Email: <code>${email}</code></div>
+            <div>Senha: <code>${password}</code></div>
+          </div>
+          <p style="margin-top: 16px; color: #666;">
+            Você já pode fazer login no sistema com essas credenciais.
+          </p>
+        `;
+        message.className = 'message success show';
+
+        form.style.display = 'none';
+
+      } catch (error) {
+        console.error('Erro:', error);
+        showMessage(`Erro: ${error.message}`, 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Criar Administrador';
+      }
+    });
+  </script>
+</body>
+</html>
