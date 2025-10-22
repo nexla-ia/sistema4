@@ -2,15 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Save, RefreshCw, Lock, Unlock, Plus, Users, Settings } from 'lucide-react';
 import Modal from './Modal';
 import { useModal } from '../hooks/useModal';
-import { 
-  getAllSlots, 
-  supabase,
-  getDefaultSchedule,
-  saveDefaultSchedule,
-  generateSlotsWithSavedConfig,
-  deleteAllSlots,
-  type Salon 
-} from '../lib/supabase';
+import {
+  db,
+  type Salon
+} from '../lib/localDatabase';
 
 interface ScheduleManagerProps {
   salon: Salon | null;
