@@ -1,11 +1,14 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Service, Booking, getServices, createBooking } from '../lib/supabase';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { db, Service, Booking, Salon } from '../lib/localDatabase';
 
 interface AppContextType {
   services: Service[];
   bookings: Booking[];
+  salon: Salon | null;
   addBooking: (booking: any) => void;
-  loadServices: () => Promise<void>;
+  loadServices: () => void;
+  loadBookings: () => void;
+  loadSalon: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -17,41 +20,69 @@ interface AppProviderProps {
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [services, setServices] = useState<Service[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [salon, setSalon] = useState<Salon | null>(null);
 
-  const loadServices = async () => {
+  const loadServices = () => {
     try {
-      const { data } = await getServices();
-      if (data) {
-        setServices(data);
-      }
+      const data = db.getServices();
+      setServices(data);
     } catch (error) {
       console.error('Error loading services:', error);
     }
   };
 
-  const addBooking = (bookingData: any) => {
-    const newBooking: Booking = {
-      id: Date.now().toString(),
-      salon_id: 'your-default-salon-id',
-      customer_id: 'temp-customer-id',
-      booking_date: bookingData.date,
-      booking_time: bookingData.time,
-      status: 'pending',
-      total_price: bookingData.totalPrice,
-      total_duration_minutes: bookingData.duration,
-      notes: bookingData.observations,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    
-    setBookings(prev => [...prev, newBooking]);
+  const loadBookings = () => {
+    try {
+      const data = db.getBookings();
+      setBookings(data);
+    } catch (error) {
+      console.error('Error loading bookings:', error);
+    }
   };
+
+  const loadSalon = () => {
+    try {
+      const data = db.getSalon();
+      setSalon(data);
+    } catch (error) {
+      console.error('Error loading salon:', error);
+    }
+  };
+
+  const addBooking = (bookingData: any) => {
+    try {
+      const newBooking = db.createBooking({
+        customer: {
+          name: bookingData.customerName,
+          phone: bookingData.customerPhone,
+          email: bookingData.customerEmail
+        },
+        date: bookingData.date,
+        time: bookingData.time,
+        services: bookingData.services,
+        notes: bookingData.observations
+      });
+
+      setBookings(prev => [...prev, newBooking]);
+    } catch (error) {
+      console.error('Error adding booking:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadServices();
+    loadBookings();
+    loadSalon();
+  }, []);
 
   const value: AppContextType = {
     services,
     bookings,
+    salon,
     addBooking,
-    loadServices
+    loadServices,
+    loadBookings,
+    loadSalon
   };
 
   return (
