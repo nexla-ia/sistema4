@@ -1,6 +1,6 @@
 import React from 'react';
 import { MapPin, Clock, Phone, Instagram, Facebook, Star } from 'lucide-react';
-import type { Salon } from '../lib/supabase';
+import type { Salon } from '../lib/localDatabase';
 
 interface FooterProps {
   salon: Salon | null;
