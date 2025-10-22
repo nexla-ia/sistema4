@@ -1,6 +1,6 @@
 import React from 'react';
 import { Sparkles, Clock, Star, Calendar } from 'lucide-react';
-import type { Salon } from '../lib/supabase';
+import type { Salon } from '../lib/localDatabase';
 
 interface HeroProps {
   onScheduleClick: () => void;
