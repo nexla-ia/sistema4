@@ -1,6 +1,6 @@
 import React from 'react';
 import { Calendar, Phone, MapPin, LogIn } from 'lucide-react';
-import type { Salon } from '../lib/supabase';
+import type { Salon } from '../lib/localDatabase';
 
 interface HeaderProps {
   salon: Salon | null;
