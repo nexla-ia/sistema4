@@ -2,8 +2,24 @@ import React, { useState } from 'react';
 import { useApp } from '../contexts/AppContext';
 import Modal from './Modal';
 import { useModal } from '../hooks/useModal';
-import { db, Service, Salon } from '../lib/localDatabase';
+import { supabase } from '../lib/supabase';
 import { Calendar, Clock, User, Phone, Mail, MessageSquare, ArrowLeft, Check } from 'lucide-react';
+
+interface Service {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  duration_minutes: number;
+}
+
+interface Salon {
+  id: string;
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+}
 
 interface BookingFormProps {
   selectedServices: Service[];
@@ -67,12 +83,19 @@ const BookingForm = ({ selectedServices, onBack, salon }: BookingFormProps) => {
     });
   };
 
-  const fetchAvailableSlots = (date: string) => {
+  const fetchAvailableSlots = async (date: string) => {
     console.log('Buscando horários para:', date);
     setLoading(true);
     try {
-      const slots = db.getAvailableSlots(date);
-      const formattedSlots = slots.map(slot => ({
+      const { data, error } = await supabase
+        .from('time_slots')
+        .select('*')
+        .eq('date', date)
+        .order('time_slot');
+
+      if (error) throw error;
+
+      const formattedSlots = (data || []).map(slot => ({
         time: slot.time_slot,
         available: slot.status === 'available'
       }));
