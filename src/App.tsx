@@ -9,21 +9,52 @@ import RegisterForm from './components/RegisterForm';
 import Footer from './components/Footer';
 import ReviewsSection from './components/ReviewsSection';
 import { Calendar, ShoppingCart, X, User } from 'lucide-react';
-import { getServices, getCurrentUser, getSalonByUserId, supabase } from './lib/supabase';
-import type { Service, Salon } from './lib/supabase';
+import { supabase, getServices, getSalonByUserId, type Salon, type Service } from './lib/supabase';
 
-// Team Member Card Component
+/** Avatar circular reutilizável com fallback para iniciais */
+interface AvatarCircleProps {
+  src?: string;
+  alt: string;
+  initials: string; // usado no fallback
+}
+const AvatarCircle: React.FC<AvatarCircleProps> = ({ src, alt, initials }) => {
+  const [error, setError] = useState(false);
+
+  if (!src || error) {
+    // Fallback (sem imagem ou erro no carregamento)
+    return (
+      <div className="w-20 h-20 md:w-24 md:h-24 rounded-full mx-auto mb-4 shadow-lg overflow-hidden flex items-center justify-center bg-gradient-to-br from-clinic-400 to-clinic-500">
+        <span className="text-white text-2xl md:text-3xl font-bold">{initials}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-20 h-20 md:w-24 md:h-24 rounded-full mx-auto mb-4 shadow-lg overflow-hidden relative ring-2 ring-white">
+      <img
+        src={src}
+        alt={alt}
+        className="absolute inset-0 w-full h-full object-cover object-center"
+        onError={() => setError(true)}
+        loading="lazy"
+      />
+    </div>
+  );
+};
+
+// Team Member Card Component (mantido; usa AvatarCircle quando desejar)
 interface TeamMemberCardProps {
   name: string;
   role: string;
   initials: string;
   description: string;
+  photoSrc?: string;
 }
 
-const TeamMemberCard: React.FC<TeamMemberCardProps> = ({ name, role, initials, description }) => {
+const TeamMemberCard: React.FC<TeamMemberCardProps> = ({ name, role, initials, description, photoSrc }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   
-  // Truncate description to approximately 80 characters
+  // Trunca a descrição em ~80 caracteres
   const truncatedDescription = description.length > 80 
     ? description.substring(0, 80) + '...' 
     : description;
@@ -31,10 +62,7 @@ const TeamMemberCard: React.FC<TeamMemberCardProps> = ({ name, role, initials, d
   return (
     <div className="bg-gradient-to-br from-white to-clinic-50 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-500 hover:scale-105 border border-clinic-100">
       <div className="text-center mb-4">
-        <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-clinic-400 to-clinic-500 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
-          {/* Placeholder for photo - will be replaced with actual image */}
-          <span className="text-white text-2xl md:text-3xl font-bold">{initials}</span>
-        </div>
+        <AvatarCircle src={photoSrc} alt={`${name} - ${role}`} initials={initials} />
         <h4 className="text-lg md:text-xl font-bold text-gray-900 mb-1">{name}</h4>
         <p className="text-sm text-clinic-600 font-medium">{role}</p>
       </div>
@@ -90,9 +118,11 @@ function App() {
     loadInitialData();
     
     // Set up Google Maps initialization
+    // @ts-ignore
     window.initializeGoogleMap = initializeGoogleMap;
     
     // If Google Maps is already loaded, initialize immediately
+    // @ts-ignore
     if (window.google && window.google.maps) {
       setTimeout(initializeGoogleMap, 1000);
     }
@@ -101,41 +131,33 @@ function App() {
   const loadInitialData = async () => {
     try {
       console.log('=== CARREGANDO DADOS INICIAIS ===');
-      
-      const { data: servicesData } = await getServices();
-      console.log('Serviços carregados:', servicesData);
-      
-      if (servicesData) {
+
+      const { data: servicesData, error: servicesError } = await getServices();
+      console.log('Serviços carregados do Supabase:', servicesData, servicesError);
+
+      if (servicesData && !servicesError) {
         setServices(servicesData);
         console.log('Serviços definidos no estado:', servicesData.length);
       } else {
-        console.warn('Nenhum serviço encontrado');
+        console.warn('Nenhum serviço encontrado ou erro:', servicesError);
         setServices([]);
       }
 
-      const user = await getCurrentUser();
-      if (user) {
-        setIsAuthenticated(true);
-        console.log('User logged in:', user.id);
-        // Get the first active salon for admin interface
-        const { data: salonData } = await supabase
-          .from('salons')
-          .select('*')
-          .eq('active', true)
-          .limit(1)
-          .maybeSingle();
-        console.log('Salon data found:', salonData);
-        if (salonData) {
-          setSalon(salonData);
-        } else {
-          console.warn('No active salon found');
-          setSalon(null);
-        }
+      const { data: salonsData, error: salonsError } = await supabase
+        .from('salons')
+        .select('*')
+        .eq('active', true)
+        .limit(1)
+        .maybeSingle();
+
+      console.log('Salon data from Supabase:', salonsData, salonsError);
+
+      if (salonsData && !salonsError) {
+        setSalon(salonsData);
       } else {
-        // Se não há usuário logado, usar dados padrão da clínica para visualização
+        console.warn('No salon found, using default data');
         setSalon({
           id: crypto.randomUUID(),
-          user_id: undefined,
           name: clinicData.name,
           description: clinicData.description,
           address: clinicData.address,
@@ -159,11 +181,9 @@ function App() {
       }
     } catch (error) {
       console.error('Error loading initial data:', error);
-      // Em caso de erro, usar dados padrão para não quebrar a aplicação
       setServices([]);
       setSalon({
         id: crypto.randomUUID(),
-        user_id: undefined,
         name: clinicData.name,
         description: clinicData.description,
         address: clinicData.address,
@@ -191,6 +211,7 @@ function App() {
 
   const initializeGoogleMap = () => {
     const mapElement = document.getElementById('google-map');
+    // @ts-ignore
     if (!mapElement || !window.google || !window.google.maps) {
       console.log('Google Maps não carregado ainda ou elemento não encontrado');
       return;
@@ -202,6 +223,7 @@ function App() {
     const clinicLocation = { lat: -12.729139, lng: -60.136111 };
 
     try {
+      // @ts-ignore
       const map = new window.google.maps.Map(mapElement, {
         zoom: 15,
         center: clinicLocation,
@@ -223,6 +245,7 @@ function App() {
       console.log('Mapa criado com sucesso');
 
       // Marcador personalizado
+      // @ts-ignore
       const marker = new window.google.maps.Marker({
         position: clinicLocation,
         map: map,
@@ -234,7 +257,9 @@ function App() {
               <path d="M20 10C16.6863 10 14 12.6863 14 16C14 20.5 20 30 20 30S26 20.5 26 16C26 12.6863 23.3137 10 20 10ZM20 18.5C18.6193 18.5 17.5 17.3807 17.5 16C17.5 14.6193 18.6193 13.5 20 13.5C21.3807 13.5 22.5 14.6193 22.5 16C22.5 17.3807 21.3807 18.5 20 18.5Z" fill="white"/>
             </svg>
           `),
+          // @ts-ignore
           scaledSize: new window.google.maps.Size(40, 40),
+          // @ts-ignore
           anchor: new window.google.maps.Point(20, 40)
         }
       });
@@ -242,6 +267,7 @@ function App() {
       console.log('Marcador criado com sucesso');
 
       // Info window com informações da clínica
+      // @ts-ignore
       const infoWindow = new window.google.maps.InfoWindow({
         content: `
           <div style="padding: 10px; max-width: 250px;">
@@ -263,12 +289,15 @@ function App() {
       });
 
       // Abrir info window ao clicar no marcador
+      // @ts-ignore
       marker.addListener('click', () => {
+        // @ts-ignore
         infoWindow.open(map, marker);
       });
 
       // Abrir automaticamente após 2 segundos
       setTimeout(() => {
+        // @ts-ignore
         infoWindow.open(map, marker);
       }, 2000);
 
@@ -312,11 +341,25 @@ function App() {
     }, 100);
   };
 
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = async () => {
     setShowLogin(false);
     setIsAuthenticated(true);
     setShowAdminDashboard(true);
-    loadInitialData(); // Reload data after login
+
+    // Load authenticated user's salon
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: userSalon } = await getSalonByUserId(user.id);
+        if (userSalon) {
+          setSalon(userSalon);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading salon after login:', error);
+    }
+
+    await loadInitialData();
   };
 
   const handleProfileClick = () => {
@@ -477,9 +520,9 @@ function App() {
                     
                     <div className="grid grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
                       <div className="relative group overflow-hidden rounded-xl md:rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500">
-                        <img 
-                          src="/foto1.jpg" 
-                          alt="Centro Terapêutico Bem-Estar - Ambiente interno" 
+                        <img
+                          src={encodeURI('/AAbalcao.jpg')}
+                          alt="Centro Terapêutico Bem-Estar - Ambiente interno"
                           className="w-full h-24 md:h-32 lg:h-40 object-cover group-hover:scale-110 transition-transform duration-500"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -489,9 +532,9 @@ function App() {
                       </div>
                       
                       <div className="relative group overflow-hidden rounded-xl md:rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500">
-                        <img 
-                          src="/20250814_130359.jpg" 
-                          alt="Centro Terapêutico Bem-Estar - Espaço Terapêutico" 
+                        <img
+                          src={encodeURI('/AAchegada.jpg')}
+                          alt="Centro Terapêutico Bem-Estar - Espaço Terapêutico"
                           className="w-full h-24 md:h-32 lg:h-40 object-cover group-hover:scale-110 transition-transform duration-500"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -503,9 +546,9 @@ function App() {
                     
                     <div className="grid grid-cols-2 gap-3 md:gap-4">
                       <div className="relative group overflow-hidden rounded-xl md:rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500">
-                        <img 
-                          src="/sala4.jpg" 
-                          alt="Centro Terapêutico Bem-Estar - Sala de Terapia" 
+                        <img
+                          src={encodeURI('/AAmassagem.jpg')}
+                          alt="Centro Terapêutico Bem-Estar - Sala de Terapia"
                           className="w-full h-20 md:h-24 lg:h-32 object-cover group-hover:scale-110 transition-transform duration-500"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -515,9 +558,9 @@ function App() {
                       </div>
                       
                       <div className="relative group overflow-hidden rounded-xl md:rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500">
-                        <img 
-                          src="/sala11.jpg" 
-                          alt="Centro Terapêutico Bem-Estar - Área de Acolhimento" 
+                        <img
+                          src={encodeURI('/AAsofa.jpg')}
+                          alt="Centro Terapêutico Bem-Estar - Área de Acolhimento"
                           className="w-full h-20 md:h-24 lg:h-32 object-cover group-hover:scale-110 transition-transform duration-500"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -548,13 +591,11 @@ function App() {
                   {/* André Silva */}
                   <div className="bg-gradient-to-br from-white to-clinic-50 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-500 hover:scale-105 border border-clinic-100">
                     <div className="text-center mb-4">
-                      <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-clinic-400 to-clinic-500 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
-                        <img 
-                          src="/andre-silva-terapeuta.png" 
-                          alt="André Silva - Terapeuta Holístico" 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
+                      <AvatarCircle
+                        src={encodeURI('/AndreSilva.png')}
+                        alt="André Silva - Terapeuta Holístico"
+                        initials="AS"
+                      />
                       <h4 className="text-lg md:text-xl font-bold text-gray-900 mb-1">André Silva</h4>
                       <p className="text-sm text-clinic-600 font-medium">Terapeuta Holístico</p>
                     </div>
@@ -568,13 +609,11 @@ function App() {
                   {/* Rafael Falco */}
                   <div className="bg-gradient-to-br from-white to-clinic-50 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-500 hover:scale-105 border border-clinic-100">
                     <div className="text-center mb-4">
-                      <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-clinic-400 to-clinic-500 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
-                        <img 
-                          src="/rafael.png" 
-                          alt="Rafael Falco - Massoterapeuta" 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
+                      <AvatarCircle
+                        src={encodeURI('/RafaelFalco.png')}
+                        alt="Rafael Falco - Massoterapeuta"
+                        initials="RF"
+                      />
                       <h4 className="text-lg md:text-xl font-bold text-gray-900 mb-1">Rafael Falco</h4>
                       <p className="text-sm text-clinic-600 font-medium">Massoterapeuta</p>
                     </div>
@@ -588,13 +627,11 @@ function App() {
                   {/* Lu Gonçalves */}
                   <div className="bg-gradient-to-br from-white to-clinic-50 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-500 hover:scale-105 border border-clinic-100 md:col-span-2 lg:col-span-1">
                     <div className="text-center mb-4">
-                      <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-clinic-400 to-clinic-500 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
-                        <img 
-                          src="/luciana.png" 
-                          alt="Lu Gonçalves - Terapeuta Energética" 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
+                      <AvatarCircle
+                        src={encodeURI('/LuGoncalves.png')}
+                        alt="Lu Gonçalves - Terapeuta Energética"
+                        initials="LG"
+                      />
                       <h4 className="text-lg md:text-xl font-bold text-gray-900 mb-1">Lu Gonçalves</h4>
                       <p className="text-sm text-clinic-600 font-medium">Terapeuta Energética</p>
                     </div>
@@ -725,11 +762,27 @@ function App() {
                 </div>
                 
                 <button
-                  onClick={handleStartBooking}
+                  onClick={() => {
+                    const servicesText = selectedServices.map(s => `• ${s.name}`).join('\n');
+                    const totalPriceBRL = getTotalPrice().toFixed(2).replace('.', ',');
+                    const message =
+`Olá! Gostaria de agendar um horário no Centro Terapêutico Bem-Estar.
+*Serviços desejados:*
+
+${servicesText}
+
+*Tempo estimado:* ${getTotalDuration()}
+*Com o valor estimado em:* R$ ${totalPriceBRL}
+
+Aguardo a confirmação, por favor.`;
+
+                    const whatsappUrl = `https://wa.me/5569992839458?text=${encodeURIComponent(message)}`;
+                    window.open(whatsappUrl, '_blank');
+                  }}
                   className="w-full bg-gradient-to-r from-clinic-500 to-clinic-600 text-white py-2 md:py-3 rounded-lg md:rounded-xl font-semibold text-sm md:text-base hover:from-clinic-600 hover:to-clinic-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center justify-center"
                 >
                   <Calendar className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
-                  Agendar Serviços
+                  Agendar via WhatsApp
                 </button>
               </div>
             </div>
