@@ -116,16 +116,10 @@ function App() {
 
   useEffect(() => {
     loadInitialData();
-    
-    // Set up Google Maps initialization
-    // @ts-ignore
-    window.initializeGoogleMap = initializeGoogleMap;
-    
-    // If Google Maps is already loaded, initialize immediately
-    // @ts-ignore
-    if (window.google && window.google.maps) {
-      setTimeout(initializeGoogleMap, 1000);
-    }
+
+    setTimeout(() => {
+      initializeMap();
+    }, 500);
   }, []);
 
   const loadInitialData = async () => {
@@ -209,101 +203,69 @@ function App() {
     }
   };
 
-  const initializeGoogleMap = () => {
+  const initializeMap = () => {
     const mapElement = document.getElementById('google-map');
     // @ts-ignore
-    if (!mapElement || !window.google || !window.google.maps) {
-      console.log('Google Maps não carregado ainda ou elemento não encontrado');
+    if (!mapElement || !window.L) {
+      console.log('Leaflet não carregado ainda ou elemento não encontrado');
+      setTimeout(initializeMap, 500);
       return;
     }
 
-    console.log('Inicializando Google Maps...');
+    console.log('Inicializando mapa...');
 
-    // Coordenadas mais precisas de Vilhena, RO
-    const clinicLocation = { lat: -12.729139, lng: -60.136111 };
+    const clinicLocation: [number, number] = [-12.729139, -60.136111];
 
     try {
       // @ts-ignore
-      const map = new window.google.maps.Map(mapElement, {
-        zoom: 15,
-        center: clinicLocation,
-        mapTypeId: 'roadmap',
-        styles: [
-          {
-            featureType: 'poi',
-            elementType: 'labels',
-            stylers: [{ visibility: 'off' }]
-          },
-          {
-            featureType: 'transit',
-            elementType: 'labels',
-            stylers: [{ visibility: 'off' }]
-          }
-        ]
-      });
+      const map = window.L.map('google-map').setView(clinicLocation, 15);
 
-      console.log('Mapa criado com sucesso');
-
-      // Marcador personalizado
       // @ts-ignore
-      const marker = new window.google.maps.Marker({
-        position: clinicLocation,
-        map: map,
-        title: 'Centro Terapêutico Bem-Estar',
-        icon: {
-          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="20" cy="20" r="18" fill="#3B82F6" stroke="white" stroke-width="4"/>
-              <path d="M20 10C16.6863 10 14 12.6863 14 16C14 20.5 20 30 20 30S26 20.5 26 16C26 12.6863 23.3137 10 20 10ZM20 18.5C18.6193 18.5 17.5 17.3807 17.5 16C17.5 14.6193 18.6193 13.5 20 13.5C21.3807 13.5 22.5 14.6193 22.5 16C22.5 17.3807 21.3807 18.5 20 18.5Z" fill="white"/>
-            </svg>
-          `),
-          // @ts-ignore
-          scaledSize: new window.google.maps.Size(40, 40),
-          // @ts-ignore
-          anchor: new window.google.maps.Point(20, 40)
-        }
-      });
+      window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
 
-      console.log('Marcador criado com sucesso');
+      const customIcon = `
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="20" cy="20" r="18" fill="#3B82F6" stroke="white" stroke-width="4"/>
+          <path d="M20 10C16.6863 10 14 12.6863 14 16C14 20.5 20 30 20 30S26 20.5 26 16C26 12.6863 23.3137 10 20 10ZM20 18.5C18.6193 18.5 17.5 17.3807 17.5 16C17.5 14.6193 18.6193 13.5 20 13.5C21.3807 13.5 22.5 14.6193 22.5 16C22.5 17.3807 21.3807 18.5 20 18.5Z" fill="white"/>
+        </svg>
+      `;
 
-      // Info window com informações da clínica
       // @ts-ignore
-      const infoWindow = new window.google.maps.InfoWindow({
-        content: `
-          <div style="padding: 10px; max-width: 250px;">
-            <h3 style="margin: 0 0 8px 0; color: #1f2937; font-size: 16px; font-weight: bold;">
-              Centro Terapêutico Bem-Estar
-            </h3>
-            <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 14px;">
-              Avenida Curitiba, nº 3886<br>
-              Jardim das Oliveiras, Vilhena - RO
-            </p>
-            <p style="margin: 0 0 8px 0; color: #3b82f6; font-size: 14px;">
-              📱 (69) 99283-9458
-            </p>
-            <p style="margin: 0; color: #059669; font-size: 12px; font-weight: 500;">
-              ✅ Atendimento com hora marcada
-            </p>
-          </div>
-        `
+      const icon = window.L.divIcon({
+        html: customIcon,
+        className: '',
+        iconSize: [40, 40],
+        iconAnchor: [20, 40]
       });
 
-      // Abrir info window ao clicar no marcador
       // @ts-ignore
-      marker.addListener('click', () => {
-        // @ts-ignore
-        infoWindow.open(map, marker);
-      });
+      const marker = window.L.marker(clinicLocation, { icon }).addTo(map);
 
-      // Abrir automaticamente após 2 segundos
-      setTimeout(() => {
-        // @ts-ignore
-        infoWindow.open(map, marker);
-      }, 2000);
+      const popupContent = `
+        <div style="padding: 10px; max-width: 250px;">
+          <h3 style="margin: 0 0 8px 0; color: #1f2937; font-size: 16px; font-weight: bold;">
+            Centro Terapêutico Bem-Estar
+          </h3>
+          <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 14px;">
+            Avenida Curitiba, nº 3886<br>
+            Jardim das Oliveiras, Vilhena - RO
+          </p>
+          <p style="margin: 0 0 8px 0; color: #3b82f6; font-size: 14px;">
+            📱 (69) 99283-9458
+          </p>
+          <p style="margin: 0; color: #059669; font-size: 12px; font-weight: 500;">
+            ✅ Atendimento com hora marcada
+          </p>
+        </div>
+      `;
 
-      console.log('Google Maps inicializado completamente');
+      marker.bindPopup(popupContent).openPopup();
+
+      console.log('Mapa inicializado com sucesso');
     } catch (error) {
-      console.error('Erro ao inicializar Google Maps:', error);
+      console.error('Erro ao inicializar mapa:', error);
     }
   };
 
