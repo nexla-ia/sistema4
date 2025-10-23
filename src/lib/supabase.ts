@@ -3,11 +3,13 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
-}
+const isSupabaseConfigured = supabaseUrl && supabaseAnonKey &&
+  supabaseUrl !== 'your_supabase_url_here' &&
+  supabaseAnonKey !== 'your_supabase_anon_key_here';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = isSupabaseConfigured
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null as any;
 
 export interface Service {
   id: string;
@@ -81,6 +83,10 @@ export interface TimeSlot {
 
 // Services
 export const getServices = async () => {
+  if (!isSupabaseConfigured) {
+    const { mockServices } = await import('./mockSupabase');
+    return { data: mockServices, error: null };
+  }
   return await supabase
     .from('services')
     .select('*')
@@ -124,6 +130,10 @@ export const getSalonByUserId = async (userId: string) => {
 
 // Reviews
 export const getReviews = async (salonId?: string) => {
+  if (!isSupabaseConfigured) {
+    const { mockReviews } = await import('./mockSupabase');
+    return { data: mockReviews, error: null };
+  }
   let query = supabase
     .from('reviews')
     .select('*')
@@ -138,6 +148,9 @@ export const getReviews = async (salonId?: string) => {
 };
 
 export const createReview = async (reviewData: Omit<Review, 'id' | 'created_at' | 'updated_at' | 'approved'>) => {
+  if (!isSupabaseConfigured) {
+    return { data: { id: Date.now().toString(), ...reviewData, approved: false }, error: null };
+  }
   return await supabase
     .from('reviews')
     .insert({ ...reviewData, approved: false })
@@ -147,6 +160,9 @@ export const createReview = async (reviewData: Omit<Review, 'id' | 'created_at' 
 
 // Bookings
 export const createBooking = async (bookingData: Omit<Booking, 'id' | 'created_at' | 'updated_at'>) => {
+  if (!isSupabaseConfigured) {
+    return { data: { id: Date.now().toString(), ...bookingData, status: 'pending' as const }, error: null };
+  }
   return await supabase
     .from('bookings')
     .insert(bookingData)
