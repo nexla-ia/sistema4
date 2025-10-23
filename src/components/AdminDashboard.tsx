@@ -308,25 +308,15 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Preço (R$)</label>
                       <input
-                       type="text"
-                       inputMode="decimal"
-                       value={newService.price === 0 ? '' : newService.price.toString()}
+                       type="number"
+                       step="0.01"
+                       min="0"
+                       value={newService.price === 0 ? '' : newService.price}
                        onChange={(e) => {
-                         const value = e.target.value.replace(/[^\d.,]/g, '').replace(',', '.');
-                         const numValue = value === '' ? 0 : parseFloat(value) || 0;
+                         const numValue = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
                          setNewService(prev => ({ ...prev, price: numValue }));
                        }}
-                       onFocus={(e) => {
-                         if (e.target.value === '0') {
-                           e.target.value = '';
-                         }
-                         e.target.select();
-                       }}
-                       onBlur={(e) => {
-                         if (e.target.value === '') {
-                           setNewService(prev => ({ ...prev, price: 0 }));
-                         }
-                       }}
+                       onFocus={(e) => e.target.select()}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-clinic-500 focus:border-transparent"
                        placeholder="Ex: 50 ou 50.50"
                       />
@@ -390,25 +380,15 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
                       <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Preço Promocional (R$)</label>
                         <input
-                          type="text"
-                          inputMode="decimal"
-                          value={newService.promotional_price === 0 ? '' : newService.promotional_price.toString()}
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={newService.promotional_price === 0 ? '' : newService.promotional_price}
                           onChange={(e) => {
-                            const value = e.target.value.replace(/[^\d.,]/g, '').replace(',', '.');
-                            const numValue = value === '' ? 0 : parseFloat(value) || 0;
+                            const numValue = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
                             setNewService(prev => ({ ...prev, promotional_price: numValue }));
                           }}
-                          onFocus={(e) => {
-                            if (e.target.value === '0') {
-                              e.target.value = '';
-                            }
-                            e.target.select();
-                          }}
-                          onBlur={(e) => {
-                            if (e.target.value === '') {
-                              setNewService(prev => ({ ...prev, promotional_price: 0 }));
-                            }
-                          }}
+                          onFocus={(e) => e.target.select()}
                           className="w-full px-3 py-2 border border-red-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent bg-red-50"
                           placeholder="Ex: 70 ou 70.50"
                         />
@@ -454,25 +434,15 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Preço (R$)</label>
                           <input
-                           type="text"
-                           inputMode="decimal"
-                           value={editingService.price === 0 ? '' : editingService.price.toString()}
+                           type="number"
+                           step="0.01"
+                           min="0"
+                           value={editingService.price === 0 ? '' : editingService.price}
                            onChange={(e) => {
-                             const value = e.target.value.replace(/[^\d.,]/g, '').replace(',', '.');
-                             const numValue = value === '' ? 0 : parseFloat(value) || 0;
+                             const numValue = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
                              setEditingService(prev => prev ? ({ ...prev, price: numValue }) : null);
                            }}
-                           onFocus={(e) => {
-                             if (e.target.value === '0') {
-                               e.target.value = '';
-                             }
-                             e.target.select();
-                           }}
-                           onBlur={(e) => {
-                             if (e.target.value === '') {
-                               setEditingService(prev => prev ? ({ ...prev, price: 0 }) : null);
-                             }
-                           }}
+                           onFocus={(e) => e.target.select()}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-clinic-500 focus:border-transparent"
                            placeholder="Ex: 50 ou 50.50"
                           />
@@ -499,25 +469,15 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Preço Promocional (R$)</label>
                             <input
-                              type="text"
-                              inputMode="decimal"
-                              value={!editingService.promotional_price || editingService.promotional_price === 0 ? '' : editingService.promotional_price.toString()}
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={!editingService.promotional_price || editingService.promotional_price === 0 ? '' : editingService.promotional_price}
                               onChange={(e) => {
-                                const value = e.target.value.replace(/[^\d.,]/g, '').replace(',', '.');
-                                const numValue = value === '' ? 0 : parseFloat(value) || 0;
+                                const numValue = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
                                 setEditingService(prev => prev ? ({ ...prev, promotional_price: numValue }) : null);
                               }}
-                              onFocus={(e) => {
-                                if (e.target.value === '0') {
-                                  e.target.value = '';
-                                }
-                                e.target.select();
-                              }}
-                              onBlur={(e) => {
-                                if (e.target.value === '') {
-                                  setEditingService(prev => prev ? ({ ...prev, promotional_price: 0 }) : null);
-                                }
-                              }}
+                              onFocus={(e) => e.target.select()}
                               className="w-full px-3 py-2 border border-red-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent bg-red-50"
                               placeholder="Ex: 70 ou 70.50"
                             />
