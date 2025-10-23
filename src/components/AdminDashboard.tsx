@@ -2,15 +2,20 @@ import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { useModal } from '../hooks/useModal';
 import { Settings, Plus, Edit, Trash2, LogOut } from 'lucide-react';
-import {
-  getServices,
-  createService,
-  updateService,
-  deleteService,
-  signOut,
-  type Service,
-  type Salon
-} from '../lib/supabase';
+import { storage, type Service } from '../lib/mockSupabase';
+
+interface Salon {
+  id: string;
+  name: string;
+  description?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  instagram?: string;
+  facebook?: string;
+  opening_hours?: any;
+  active: boolean;
+}
 
 interface AdminDashboardProps {
   salon: Salon | null;
@@ -61,14 +66,8 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
 
   const loadData = async () => {
     try {
-      const servicesResult = await getServices();
-
-      if (servicesResult.data) {
-        setServices(servicesResult.data);
-      } else {
-        console.warn('No services found or error loading services:', servicesResult.error);
-        setServices([]);
-      }
+      const servicesData = storage.getServices();
+      setServices(servicesData);
     } catch (error) {
       console.error('Error loading data:', error);
       setServices([]);

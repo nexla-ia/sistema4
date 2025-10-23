@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Star, MessageCircle, User, Send, CheckCircle } from 'lucide-react';
 import Modal from './Modal';
 import { useModal } from '../hooks/useModal';
-import { getReviews, createReview, type Review, type Salon } from '../lib/supabase';
+import { getReviews, createReview, type Review, type Salon } from '../lib/mockSupabase';
 
 interface ReviewsSectionProps {
   salon: Salon | null;

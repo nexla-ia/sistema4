@@ -9,7 +9,20 @@ import RegisterForm from './components/RegisterForm';
 import Footer from './components/Footer';
 import ReviewsSection from './components/ReviewsSection';
 import { Calendar, ShoppingCart, X, User } from 'lucide-react';
-import { supabase, getServices, getSalonByUserId, type Salon, type Service } from './lib/supabase';
+import { storage, type Service } from './lib/mockSupabase';
+
+interface Salon {
+  id: string;
+  name: string;
+  description?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  instagram?: string;
+  facebook?: string;
+  opening_hours?: any;
+  active: boolean;
+}
 
 /** Avatar circular reutilizável com fallback para iniciais */
 interface AvatarCircleProps {
@@ -126,37 +139,20 @@ function App() {
     try {
       console.log('=== CARREGANDO DADOS INICIAIS ===');
 
-      const { data: servicesData, error: servicesError } = await getServices();
-      console.log('Serviços carregados do Supabase:', servicesData, servicesError);
+      const servicesData = storage.getServices();
+      console.log('Serviços carregados:', servicesData);
 
-      if (servicesData && !servicesError) {
-        setServices(servicesData);
-        console.log('Serviços definidos no estado:', servicesData.length);
-      } else {
-        console.warn('Nenhum serviço encontrado ou erro:', servicesError);
-        setServices([]);
-      }
+      setServices(servicesData);
+      console.log('Serviços definidos no estado:', servicesData.length);
 
-      const { data: salonsData, error: salonsError } = await supabase
-        .from('salons')
-        .select('*')
-        .eq('active', true)
-        .limit(1)
-        .maybeSingle();
-
-      console.log('Salon data from Supabase:', salonsData, salonsError);
-
-      if (salonsData && !salonsError) {
-        setSalon(salonsData);
-      } else {
-        console.warn('No salon found, using default data');
-        setSalon({
-          id: crypto.randomUUID(),
-          name: clinicData.name,
-          description: clinicData.description,
-          address: clinicData.address,
-          phone: clinicData.phone,
-          email: clinicData.email,
+      console.log('Using default salon data');
+      setSalon({
+        id: crypto.randomUUID(),
+        name: clinicData.name,
+        description: clinicData.description,
+        address: clinicData.address,
+        phone: clinicData.phone,
+        email: clinicData.email,
           instagram: clinicData.instagram,
           facebook: clinicData.facebook,
           opening_hours: {
@@ -172,7 +168,6 @@ function App() {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         } as Salon);
-      }
     } catch (error) {
       console.error('Error loading initial data:', error);
       setServices([]);
@@ -307,20 +302,6 @@ function App() {
     setShowLogin(false);
     setIsAuthenticated(true);
     setShowAdminDashboard(true);
-
-    // Load authenticated user's salon
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: userSalon } = await getSalonByUserId(user.id);
-        if (userSalon) {
-          setSalon(userSalon);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading salon after login:', error);
-    }
-
     await loadInitialData();
   };
 

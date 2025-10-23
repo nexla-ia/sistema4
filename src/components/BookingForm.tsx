@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../contexts/AppContext';
 import Modal from './Modal';
 import { useModal } from '../hooks/useModal';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/mockSupabase';
 import { Calendar, Clock, User, Phone, Mail, MessageSquare, ArrowLeft, Check } from 'lucide-react';
 
 interface Service {

@@ -3,7 +3,13 @@
   "private": true,
   "version": "1.0.0",
   "description": "Sistema completo de agendamento online para centro terapêutico",
-  "keywords": ["react", "typescript", "supabase", "agendamento", "terapia", "saude"],
+  "keywords": [
+    "react",
+    "typescript",
+    "agendamento",
+    "terapia",
+    "saude"
+  ],
   "author": "NEXLA - Automação e IA",
   "license": "MIT",
   "repository": {
@@ -19,7 +25,6 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.53.1",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
