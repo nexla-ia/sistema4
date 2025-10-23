@@ -324,7 +324,7 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
                          }
                        }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-clinic-500 focus:border-transparent"
-                       placeholder="0,00"
+                       placeholder="Ex: 50 ou 50.50"
                       />
                     </div>
                     <div>
@@ -421,6 +421,7 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
                              }
                            }}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-clinic-500 focus:border-transparent"
+                           placeholder="Ex: 50 ou 50.50"
                           />
                         </div>
                         <div className="flex justify-end space-x-2 md:col-span-2">
