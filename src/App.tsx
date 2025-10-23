@@ -337,7 +337,12 @@ function App() {
   };
 
   const getTotalPrice = () => {
-    return parseFloat(selectedServices.reduce((total, service) => total + service.price, 0).toFixed(2));
+    return parseFloat(selectedServices.reduce((total, service) => {
+      const price = service.on_promotion && service.promotional_price
+        ? service.promotional_price
+        : service.price;
+      return total + price;
+    }, 0).toFixed(2));
   };
 
   const getTotalDuration = () => {
@@ -700,7 +705,14 @@ function App() {
                     <div key={service.id} className="flex items-center justify-between bg-gray-50 rounded-md md:rounded-lg p-1.5 md:p-2">
                       <div className="flex-1 min-w-0">
                         <p className="text-xs md:text-sm font-medium text-gray-900 truncate">{service.name}</p>
-                        <p className="text-xs text-gray-500">R$ {service.price}</p>
+                        {service.on_promotion && service.promotional_price ? (
+                          <div className="flex items-center gap-1">
+                            <p className="text-xs text-gray-400 line-through">R$ {service.price}</p>
+                            <p className="text-xs text-red-600 font-semibold">R$ {service.promotional_price}</p>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-500">R$ {service.price}</p>
+                        )}
                       </div>
                       <button
                         onClick={() => removeService(service.id)}

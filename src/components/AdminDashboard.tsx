@@ -50,7 +50,9 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
     price: 0,
     duration_minutes: 30,
     category: 'Geral',
-    popular: false
+    popular: false,
+    on_promotion: false,
+    promotional_price: 0
   });
 
   useEffect(() => {
@@ -111,7 +113,9 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
           price: 0,
           duration_minutes: 30,
           category: 'Geral',
-          popular: false
+          popular: false,
+          on_promotion: false,
+          promotional_price: 0
         });
         setShowAddService(false);
         showSuccess('Serviço Adicionado!', `O serviço "${serviceName}" foi adicionado com sucesso e já está disponível para agendamento.`);
@@ -364,6 +368,55 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
                         <span className="ml-2 text-sm text-gray-700">Serviço popular</span>
                       </label>
                     </div>
+                    <div>
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={newService.on_promotion}
+                          onChange={(e) => {
+                            const isChecked = e.target.checked;
+                            setNewService(prev => ({
+                              ...prev,
+                              on_promotion: isChecked,
+                              promotional_price: isChecked ? prev.promotional_price : 0
+                            }));
+                          }}
+                          className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                        />
+                        <span className="ml-2 text-sm text-gray-700 font-medium">Em promoção</span>
+                      </label>
+                    </div>
+                    {newService.on_promotion && (
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Preço Promocional (R$)</label>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={newService.promotional_price === 0 ? '' : newService.promotional_price.toString()}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[^\d.,]/g, '').replace(',', '.');
+                            const numValue = value === '' ? 0 : parseFloat(value) || 0;
+                            setNewService(prev => ({ ...prev, promotional_price: numValue }));
+                          }}
+                          onFocus={(e) => {
+                            if (e.target.value === '0') {
+                              e.target.value = '';
+                            }
+                            e.target.select();
+                          }}
+                          onBlur={(e) => {
+                            if (e.target.value === '') {
+                              setNewService(prev => ({ ...prev, promotional_price: 0 }));
+                            }
+                          }}
+                          className="w-full px-3 py-2 border border-red-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent bg-red-50"
+                          placeholder="Ex: 70 ou 70.50"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          O preço promocional deve ser menor que o preço normal (R$ {newService.price})
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <div className="flex justify-end space-x-3 mt-4">
                     <button
@@ -424,6 +477,55 @@ const AdminDashboard = ({ salon, onLogout }: AdminDashboardProps) => {
                            placeholder="Ex: 50 ou 50.50"
                           />
                         </div>
+                        <div>
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={editingService.on_promotion || false}
+                              onChange={(e) => {
+                                const isChecked = e.target.checked;
+                                setEditingService(prev => prev ? ({
+                                  ...prev,
+                                  on_promotion: isChecked,
+                                  promotional_price: isChecked ? (prev.promotional_price || 0) : undefined
+                                }) : null);
+                              }}
+                              className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                            />
+                            <span className="ml-2 text-sm text-gray-700 font-medium">Em promoção</span>
+                          </label>
+                        </div>
+                        {editingService.on_promotion && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Preço Promocional (R$)</label>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              value={!editingService.promotional_price || editingService.promotional_price === 0 ? '' : editingService.promotional_price.toString()}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/[^\d.,]/g, '').replace(',', '.');
+                                const numValue = value === '' ? 0 : parseFloat(value) || 0;
+                                setEditingService(prev => prev ? ({ ...prev, promotional_price: numValue }) : null);
+                              }}
+                              onFocus={(e) => {
+                                if (e.target.value === '0') {
+                                  e.target.value = '';
+                                }
+                                e.target.select();
+                              }}
+                              onBlur={(e) => {
+                                if (e.target.value === '') {
+                                  setEditingService(prev => prev ? ({ ...prev, promotional_price: 0 }) : null);
+                                }
+                              }}
+                              className="w-full px-3 py-2 border border-red-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent bg-red-50"
+                              placeholder="Ex: 70 ou 70.50"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              Preço normal: R$ {editingService.price}
+                            </p>
+                          </div>
+                        )}
                         <div className="flex justify-end space-x-2 md:col-span-2">
                           <button
                             onClick={() => setEditingService(null)}

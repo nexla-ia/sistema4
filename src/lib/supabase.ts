@@ -36,6 +36,8 @@ export interface Service {
   category: string;
   active: boolean;
   popular: boolean;
+  on_promotion: boolean;
+  promotional_price?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -308,8 +310,13 @@ export const createBooking = async (bookingData: {
     
     console.log('🛍️ Serviços encontrados:', services);
     
-    // Calculate totals
-    const totalPrice = services.reduce((sum, service) => sum + Number(service.price), 0);
+    // Calculate totals (use promotional price if available)
+    const totalPrice = services.reduce((sum, service) => {
+      const price = service.on_promotion && service.promotional_price
+        ? Number(service.promotional_price)
+        : Number(service.price);
+      return sum + price;
+    }, 0);
     const totalDuration = services.reduce((sum, service) => sum + service.duration_minutes, 0);
     
     console.log('💰 Total calculado:', { totalPrice, totalDuration });
@@ -337,11 +344,13 @@ export const createBooking = async (bookingData: {
     
     console.log('📅 Agendamento criado:', booking);
     
-    // Create booking services
+    // Create booking services (use promotional price if available)
     const bookingServices = services.map(service => ({
       booking_id: booking.id,
       service_id: service.id,
-      price: Number(service.price)
+      price: service.on_promotion && service.promotional_price
+        ? Number(service.promotional_price)
+        : Number(service.price)
     }));
     
     const { error: servicesLinkError } = await supabase

@@ -71,9 +71,24 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, isSelected, onSelect
           )}
         
           <div className="flex justify-between items-center mb-3 md:mb-4">
-            <div className="flex items-center space-x-1 text-green-600 group-hover:text-green-700 transition-colors duration-300">
-              <DollarSign className="w-4 h-4 group-hover:animate-bounce" />
-              <span className="font-bold text-base md:text-lg">R$ {service.price}</span>
+            <div className="flex flex-col">
+              {service.on_promotion && service.promotional_price ? (
+                <>
+                  <div className="flex items-center space-x-1 text-gray-400 line-through text-sm">
+                    <DollarSign className="w-3 h-3" />
+                    <span className="font-medium">R$ {service.price}</span>
+                  </div>
+                  <div className="flex items-center space-x-1 text-red-600 group-hover:text-red-700 transition-colors duration-300">
+                    <DollarSign className="w-4 h-4 group-hover:animate-bounce" />
+                    <span className="font-bold text-base md:text-lg">R$ {service.promotional_price}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center space-x-1 text-green-600 group-hover:text-green-700 transition-colors duration-300">
+                  <DollarSign className="w-4 h-4 group-hover:animate-bounce" />
+                  <span className="font-bold text-base md:text-lg">R$ {service.price}</span>
+                </div>
+              )}
             </div>
             <div className="flex items-center space-x-1 text-gray-500 group-hover:text-gray-600 transition-colors duration-300">
               <Clock className="w-4 h-4 group-hover:animate-pulse" />
